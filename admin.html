@@ -80,7 +80,7 @@
   const sheetURL = 'https://docs.google.com/spreadsheets/d/1fXffDoYdRAhiyy6efKTi_m1hdR7Y64gPMdolnHA61QE/gviz/tq?tqx=out:json';
   const requestsTable = document.querySelector("#requestsTable tbody");
   const playedTable = document.querySelector("#playedTable tbody");
-  const requestIds = new Set(); // Track seen timestamps to prevent duplicates
+  const requestIds = new Set(); // Track seen requests
 
   function formatTimestamp(raw) {
     if (raw && raw.startsWith("Date(")) {
@@ -88,20 +88,23 @@
       const date = new Date(parts[0], parts[1], parts[2], parts[3], parts[4], parts[5]);
       const time = date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
       const dateStr = `${date.getMonth() + 1}/${date.getDate()}`;
-      return `${time} ${dateStr}`;
+      return {
+        formatted: `${time} ${dateStr}`,
+        dateObj: date,
+        raw
+      };
     }
-    return "";
+    return { formatted: "", dateObj: new Date(0), raw };
   }
 
-  function createTableRow(row) {
+  function createTableRow(row, highlight = false) {
     const tr = document.createElement("tr");
     const cells = row.c.map(cell => (cell ? cell.v : ""));
 
-    const timestampRaw = cells[0];
-    const timestamp = formatTimestamp(timestampRaw);
-    const id = timestampRaw; // Using raw timestamp string as unique ID
+    const timestampData = formatTimestamp(cells[0]);
+    const id = timestampData.raw;
 
-    if (requestIds.has(id)) return null; // Skip if already displayed
+    if (requestIds.has(id)) return null;
     requestIds.add(id);
 
     const song1 = cells[1];
@@ -109,7 +112,7 @@
     const name = cells[3];
     const dedication = cells[4];
 
-    const columns = [song1, song2, name, dedication, timestamp];
+    const columns = [song1, song2, name, dedication, timestampData.formatted];
     columns.forEach(value => {
       const td = document.createElement("td");
       td.textContent = value;
@@ -128,9 +131,9 @@
         button.textContent = "Mark as Played";
         button.onclick = () => {
           playedTable.removeChild(tr);
-          requestsTable.appendChild(tr);
+          insertSorted(requestsTable, tr, timestampData.dateObj);
         };
-        requestsTable.appendChild(tr);
+        insertSorted(requestsTable, tr, timestampData.dateObj);
       };
       playedTable.appendChild(tr);
     };
@@ -138,7 +141,34 @@
     actionTd.appendChild(button);
     tr.appendChild(actionTd);
 
+    tr.dataset.timestamp = timestampData.dateObj.getTime();
+
+    if (highlight) {
+      tr.style.backgroundColor = "#fff3cd"; // light yellow
+      setTimeout(() => {
+        tr.style.transition = "background-color 1s ease";
+        tr.style.backgroundColor = "";
+      }, 2000);
+    }
+
     return tr;
+  }
+
+  function insertSorted(table, row, dateObj) {
+    const rows = Array.from(table.querySelectorAll("tr"));
+    const timestamp = dateObj.getTime();
+
+    let inserted = false;
+    for (let i = 0; i < rows.length; i++) {
+      const rowTime = parseInt(rows[i].dataset.timestamp || "0");
+      if (timestamp > rowTime) {
+        table.insertBefore(row, rows[i]);
+        inserted = true;
+        break;
+      }
+    }
+
+    if (!inserted) table.appendChild(row);
   }
 
   function loadRequests() {
@@ -147,8 +177,14 @@
       .then(text => {
         const json = JSON.parse(text.substring(47).slice(0, -2));
         json.table.rows.forEach(row => {
-          const tr = createTableRow(row);
-          if (tr) requestsTable.appendChild(tr);
+          const timestampCell = row.c[0];
+          if (!timestampCell || !timestampCell.v) return;
+
+          const timestampData = formatTimestamp(timestampCell.v);
+          if (requestIds.has(timestampData.raw)) return;
+
+          const tr = createTableRow(row, true);
+          if (tr) insertSorted(requestsTable, tr, timestampData.dateObj);
         });
       })
       .catch(err => {
