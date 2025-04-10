@@ -66,10 +66,6 @@
       text-align: center;
       margin-top: 60px;
     }
-    .highlight {
-      background-color: #ffff99 !important; /* yellow highlight */
-      transition: background-color 0.5s ease;
-    }
   </style>
 </head>
 <body>
@@ -118,6 +114,8 @@
     const playedTable = document.querySelector("#playedTable tbody");
     const requestCount = document.getElementById("requestCount");
 
+    const playedTimestamps = new Set(); // Track played requests
+
     function formatTimestamp(raw) {
       try {
         const match = raw.match(/Date\(([^)]+)\)/);
@@ -134,7 +132,7 @@
       }
     }
 
-    function createTableRow(row, highlight = false) {
+    function createTableRow(row) {
       const tr = document.createElement("tr");
       const cells = row.c.map(cell => (cell ? cell.v : ""));
 
@@ -159,6 +157,7 @@
 
       button.onclick = () => {
         tr.remove();
+        playedTimestamps.add(timestampRaw);
         button.textContent = "Return to List";
         button.onclick = () => {
           tr.remove();
@@ -166,8 +165,10 @@
           button.onclick = () => {
             playedTable.removeChild(tr);
             requestsTable.insertBefore(tr, requestsTable.firstChild);
+            playedTimestamps.delete(timestampRaw);
           };
           requestsTable.insertBefore(tr, requestsTable.firstChild);
+          playedTimestamps.delete(timestampRaw);
         };
         playedTable.appendChild(tr);
       };
@@ -175,16 +176,10 @@
       actionTd.appendChild(button);
       tr.appendChild(actionTd);
 
-      if (highlight) {
-        tr.classList.add("highlight");
-        setTimeout(() => {
-          tr.classList.remove("highlight");
-        }, 8000); // 8 seconds
-      }
-
       return {
         rowElement: tr,
-        timestampValue: new Date(timestampRaw.match(/\d+/g).join(',')).getTime()
+        timestampValue: new Date(timestampRaw.match(/\d+/g).join(',')).getTime(),
+        rawTimestamp: timestampRaw
       };
     }
 
@@ -193,7 +188,10 @@
         .then(res => res.text())
         .then(text => {
           const json = JSON.parse(text.substring(47).slice(0, -2));
-          const rows = json.table.rows.map(row => createTableRow(row, true));
+          const rows = json.table.rows
+            .map(row => createTableRow(row))
+            .filter(r => !playedTimestamps.has(r.rawTimestamp)); // exclude played
+          
           rows.sort((a, b) => b.timestampValue - a.timestampValue); // Newest first
 
           requestsTable.innerHTML = "";
@@ -210,6 +208,7 @@
       if (confirm("Are you sure you want to clear both lists?")) {
         requestsTable.innerHTML = "";
         playedTable.innerHTML = "";
+        playedTimestamps.clear();
         requestCount.textContent = "0";
       }
     }
