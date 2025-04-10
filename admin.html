@@ -15,8 +15,13 @@
     }
     .top-bar {
       display: flex;
-      justify-content: flex-end;
+      justify-content: space-between;
       margin-bottom: 20px;
+      padding: 0 5%;
+    }
+    .total-requests {
+      font-weight: bold;
+      font-size: 1.2em;
     }
     table {
       margin: auto;
@@ -33,31 +38,39 @@
       background-color: #111;
       color: white;
     }
-    td.song {
+    tr:nth-child(even) {
+      background-color: #f2f2f2;
+    }
+    tr:nth-child(odd) {
+      background-color: #fff;
+    }
+    td.song-title {
       font-weight: bold;
       font-size: 1.1em;
     }
-    tr:nth-child(even) {
-      background-color: #f0f0f0;
-    }
     button {
-      padding: 6px 10px;
+      padding: 6px 12px;
+      margin-right: 5px;
       border: none;
       border-radius: 5px;
       background-color: #007bff;
       color: white;
       cursor: pointer;
-      margin-right: 6px;
     }
     button:hover {
       background-color: #0056b3;
+    }
+    .section-title {
+      text-align: center;
+      margin-top: 60px;
     }
   </style>
 </head>
 <body>
   <h1>🎶 Admin - Song Requests 🎶</h1>
   <div class="top-bar">
-    <div id="totalRequests">Total Requests: 0</div>
+    <div class="total-requests" id="totalCount">Total Requests: 0</div>
+    <button onclick="resetAll()">Reset All</button>
   </div>
 
   <table id="requestsTable">
@@ -74,7 +87,7 @@
     <tbody></tbody>
   </table>
 
-  <h2 style="text-align:center;">✅ Played Songs</h2>
+  <h2 class="section-title">✅ Played Songs</h2>
   <table id="playedTable">
     <thead>
       <tr>
@@ -89,8 +102,8 @@
     <tbody></tbody>
   </table>
 
-  <h2 style="text-align:center;">🎤 Songs We Don't Know</h2>
-  <table id="dontKnowTable">
+  <h2 class="section-title">🤷‍♂️ Songs We Don't Know</h2>
+  <table id="unknownTable">
     <thead>
       <tr>
         <th>Song #1</th>
@@ -106,64 +119,71 @@
 
 <script>
   const sheetURL = 'https://docs.google.com/spreadsheets/d/1fXffDoYdRAhiyy6efKTi_m1hdR7Y64gPMdolnHA61QE/gviz/tq?tqx=out:json';
+
   const requestsTable = document.querySelector("#requestsTable tbody");
   const playedTable = document.querySelector("#playedTable tbody");
-  const dontKnowTable = document.querySelector("#dontKnowTable tbody");
-  const totalRequestsLabel = document.getElementById("totalRequests");
+  const unknownTable = document.querySelector("#unknownTable tbody");
+  const totalCount = document.getElementById("totalCount");
 
-  let requestRows = [];
+  let knownTimestamps = new Set();
 
-  function formatTimestamp(timestamp) {
-    const date = new Date(timestamp);
-    const options = { hour: 'numeric', minute: '2-digit' };
-    const time = date.toLocaleTimeString([], options).toLowerCase();
-    const formattedDate = `${date.getMonth()+1}/${date.getDate()}`;
-    return `${time} ${formattedDate}`;
+  function formatTimestamp(raw) {
+    try {
+      const match = raw.match(/Date\((.*?)\)/);
+      if (!match) return raw;
+
+      const parts = match[1].split(',').map(Number);
+      const date = new Date(parts[0], parts[1], parts[2], parts[3], parts[4], parts[5]);
+
+      const options = { hour: 'numeric', minute: 'numeric', hour12: true };
+      const time = date.toLocaleTimeString(undefined, options).toLowerCase();
+      const dateStr = `${date.getMonth() + 1}/${date.getDate()}`;
+
+      return `${time} ${dateStr}`;
+    } catch (e) {
+      return raw;
+    }
   }
 
-  function createTableRow(rowData) {
+  function createTableRow(cells, timestampRaw) {
     const tr = document.createElement("tr");
+    const timestamp = formatTimestamp(timestampRaw);
+    const key = timestampRaw;
 
-    const cells = rowData.c.map(cell => cell ? cell.v : "");
-    const [timestampRaw, song1, song2, name, dedication] = [
-      cells[0], cells[1], cells[2], cells[3], cells[4]
-    ];
-    const timestampFormatted = formatTimestamp(timestampRaw);
-    const rowValues = [song1, song2, name, dedication, timestampFormatted];
+    if (knownTimestamps.has(key)) return null;
 
-    rowValues.forEach((val, i) => {
+    knownTimestamps.add(key);
+
+    const [_, song1, song2, name, dedication] = cells.map(cell => (cell ? cell.v : ""));
+    const tdData = [song1, song2, name, dedication, timestamp];
+    tdData.forEach((val, idx) => {
       const td = document.createElement("td");
       td.textContent = val;
-      if (i === 0 || i === 1) td.classList.add("song");
+      if (idx === 0 || idx === 1) td.classList.add("song-title");
       tr.appendChild(td);
     });
 
     const actionTd = document.createElement("td");
-    const playButton = document.createElement("button");
-    playButton.textContent = "Mark as Played";
-    playButton.onclick = () => {
+
+    const playedBtn = document.createElement("button");
+    playedBtn.textContent = "Mark as Played";
+    playedBtn.onclick = () => {
       tr.remove();
       playedTable.appendChild(tr);
     };
 
-    const dontKnowButton = document.createElement("button");
-    dontKnowButton.textContent = "Don't Know";
-    dontKnowButton.onclick = () => {
+    const unknownBtn = document.createElement("button");
+    unknownBtn.textContent = "Don't Know";
+    unknownBtn.onclick = () => {
       tr.remove();
-      dontKnowTable.appendChild(tr);
+      unknownTable.appendChild(tr);
     };
 
-    actionTd.appendChild(playButton);
-    actionTd.appendChild(dontKnowButton);
+    actionTd.appendChild(playedBtn);
+    actionTd.appendChild(unknownBtn);
     tr.appendChild(actionTd);
 
-    return { tr, timestamp: new Date(timestampRaw) };
-  }
-
-  function renderRequests() {
-    requestsTable.innerHTML = "";
-    requestRows.forEach(({ tr }) => requestsTable.appendChild(tr));
-    totalRequestsLabel.textContent = `Total Requests: ${requestRows.length}`;
+    return tr;
   }
 
   function fetchData() {
@@ -171,8 +191,20 @@
       .then(res => res.text())
       .then(text => {
         const json = JSON.parse(text.substring(47).slice(0, -2));
-        requestRows = json.table.rows.map(row => createTableRow(row));
-        renderRequests();
+        const rows = json.table.rows;
+
+        let newRows = 0;
+
+        rows.forEach(row => {
+          const timestampRaw = row.c[0]?.v;
+          const tr = createTableRow(row.c, timestampRaw);
+          if (tr) {
+            requestsTable.insertBefore(tr, requestsTable.firstChild);
+            newRows++;
+          }
+        });
+
+        totalCount.textContent = `Total Requests: ${requestsTable.children.length}`;
       })
       .catch(err => {
         console.error("Error loading requests:", err);
@@ -180,8 +212,19 @@
       });
   }
 
+  function resetAll() {
+    if (confirm("Are you sure you want to reset all lists?")) {
+      requestsTable.innerHTML = "";
+      playedTable.innerHTML = "";
+      unknownTable.innerHTML = "";
+      knownTimestamps.clear();
+      fetchData();
+    }
+  }
+
   fetchData();
-  setInterval(fetchData, 15000);
+  setInterval(fetchData, 10000); // refresh every 10 seconds
 </script>
+
 </body>
 </html>
