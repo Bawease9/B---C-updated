@@ -48,17 +48,6 @@
       font-weight: bold;
       font-size: 1.1em;
     }
-    .highlight-0 { background-color: #ffd6d6 !important; }
-    .highlight-1 { background-color: #d6eaff !important; }
-    .highlight-2 { background-color: #d6ffd6 !important; }
-    .highlight-3 { background-color: #fff5d6 !important; }
-    .highlight-4 { background-color: #f0d6ff !important; }
-    .highlight-5 { background-color: #ffe3f1 !important; }
-    .highlight-6 { background-color: #d6fff7 !important; }
-    .highlight-7 { background-color: #f9ffd6 !important; }
-    .highlight-8 { background-color: #ecd6ff !important; }
-    .highlight-9 { background-color: #ffebd6 !important; }
-
     button {
       padding: 6px 12px;
       margin-right: 5px;
@@ -93,6 +82,7 @@
         <th>Dedication</th>
         <th>Timestamp</th>
         <th>Action</th>
+        <th>Tip Amount</th>
       </tr>
     </thead>
     <tbody></tbody>
@@ -108,6 +98,7 @@
         <th>Dedication</th>
         <th>Timestamp</th>
         <th>Action</th>
+        <th>Tip Amount</th>
       </tr>
     </thead>
     <tbody></tbody>
@@ -123,6 +114,7 @@
         <th>Dedication</th>
         <th>Timestamp</th>
         <th>Action</th>
+        <th>Tip Amount</th>
       </tr>
     </thead>
     <tbody></tbody>
@@ -137,30 +129,59 @@
   const totalCount = document.getElementById("totalCount");
 
   let knownTimestamps = new Set();
+  let songMap = {};
+  const highlightColors = ['#ffcccc', '#cce5ff', '#d5f5e3', '#f9e79f', '#f5c6cb', '#d1c4e9'];
 
   function formatTimestamp(raw) {
     try {
       const match = raw.match(/Date\((.*?)\)/);
       if (!match) return raw;
-
       const parts = match[1].split(',').map(Number);
       const date = new Date(parts[0], parts[1], parts[2], parts[3], parts[4], parts[5]);
-
       const options = { hour: 'numeric', minute: 'numeric', hour12: true };
       const time = date.toLocaleTimeString(undefined, options).toLowerCase();
       const dateStr = `${date.getMonth() + 1}/${date.getDate()}`;
-
       return `${time} ${dateStr}`;
     } catch (e) {
       return raw;
     }
   }
 
-  function stripHighlightClasses(row) {
-    const songCells = row.querySelectorAll("td.song-title");
-    songCells.forEach(cell => {
-      cell.className = "song-title";
-    });
+  function addUndoButton(row, sourceTable) {
+    const actionTd = row.children[5];
+    actionTd.innerHTML = "";
+    const undoBtn = document.createElement("button");
+    undoBtn.textContent = "Undo";
+    undoBtn.onclick = () => {
+      row.remove();
+      sourceTable.insertBefore(row, sourceTable.firstChild);
+      restoreActionButtons(row);
+    };
+    actionTd.appendChild(undoBtn);
+  }
+
+  function restoreActionButtons(row) {
+    const actionTd = row.children[5];
+    actionTd.innerHTML = "";
+
+    const playedBtn = document.createElement("button");
+    playedBtn.textContent = "Mark as Played";
+    playedBtn.onclick = () => {
+      row.remove();
+      playedTable.appendChild(row);
+      addUndoButton(row, requestsTable);
+    };
+
+    const unknownBtn = document.createElement("button");
+    unknownBtn.textContent = "Don't Know";
+    unknownBtn.onclick = () => {
+      row.remove();
+      unknownTable.appendChild(row);
+      addUndoButton(row, requestsTable);
+    };
+
+    actionTd.appendChild(playedBtn);
+    actionTd.appendChild(unknownBtn);
   }
 
   function createTableRow(cells, timestampRaw) {
@@ -171,13 +192,26 @@
     if (knownTimestamps.has(key)) return null;
     knownTimestamps.add(key);
 
-    const [_, song1, song2, name, dedication] = cells.map(cell => (cell ? cell.v : ""));
+    const [_, song1, song2, name, dedication, tipAmount] = cells.map(cell => (cell ? cell.v : ""));
     const tdData = [song1, song2, name, dedication, timestamp];
 
     tdData.forEach((val, idx) => {
       const td = document.createElement("td");
       td.textContent = val;
+
       if (idx === 0 || idx === 1) td.classList.add("song-title");
+
+      if (idx === 0 || idx === 1) {
+        const songKey = val.trim().toLowerCase();
+        if (songKey) {
+          songMap[songKey] = songMap[songKey] ? songMap[songKey] + 1 : 1;
+          if (songMap[songKey] > 1) {
+            const colorIdx = Object.keys(songMap).indexOf(songKey) % highlightColors.length;
+            td.style.backgroundColor = highlightColors[colorIdx];
+          }
+        }
+      }
+
       tr.appendChild(td);
     });
 
@@ -187,102 +221,27 @@
     playedBtn.textContent = "Mark as Played";
     playedBtn.onclick = () => {
       tr.remove();
-      stripHighlightClasses(tr);
-      addUndoRow(tr, playedTable);
-      highlightDuplicates();
+      playedTable.appendChild(tr);
+      addUndoButton(tr, requestsTable);
     };
 
     const unknownBtn = document.createElement("button");
     unknownBtn.textContent = "Don't Know";
     unknownBtn.onclick = () => {
       tr.remove();
-      stripHighlightClasses(tr);
-      addUndoRow(tr, unknownTable);
-      highlightDuplicates();
+      unknownTable.appendChild(tr);
+      addUndoButton(tr, requestsTable);
     };
 
     actionTd.appendChild(playedBtn);
     actionTd.appendChild(unknownBtn);
     tr.appendChild(actionTd);
 
+    const tipTd = document.createElement("td");
+    tipTd.textContent = tipAmount ? `$${tipAmount}` : "";
+    tr.appendChild(tipTd);
+
     return tr;
-  }
-
-  function addUndoRow(row, targetTable) {
-    const actionCell = row.lastElementChild;
-    actionCell.innerHTML = '';
-    const undoBtn = document.createElement("button");
-    undoBtn.textContent = "Undo";
-    undoBtn.onclick = () => {
-      row.remove();
-      row.lastElementChild.innerHTML = '';
-      const playedBtn = document.createElement("button");
-      playedBtn.textContent = "Mark as Played";
-      playedBtn.onclick = () => {
-        tr.remove();
-        stripHighlightClasses(tr);
-        addUndoRow(row, playedTable);
-        highlightDuplicates();
-      };
-
-      const unknownBtn = document.createElement("button");
-      unknownBtn.textContent = "Don't Know";
-      unknownBtn.onclick = () => {
-        tr.remove();
-        stripHighlightClasses(tr);
-        addUndoRow(row, unknownTable);
-        highlightDuplicates();
-      };
-
-      row.lastElementChild.appendChild(playedBtn);
-      row.lastElementChild.appendChild(unknownBtn);
-      requestsTable.insertBefore(row, requestsTable.firstChild);
-      highlightDuplicates();
-    };
-    actionCell.appendChild(undoBtn);
-    targetTable.appendChild(row);
-  }
-
-  function highlightDuplicates() {
-    const allSongCells = requestsTable.querySelectorAll("td.song-title");
-    allSongCells.forEach(td => {
-      td.className = "song-title";
-    });
-
-    const songMap = {};
-    const rows = Array.from(requestsTable.querySelectorAll("tr"));
-
-    rows.forEach(tr => {
-      const song1Cell = tr.children[0];
-      const song2Cell = tr.children[1];
-
-      const song1 = song1Cell?.textContent.trim().toLowerCase();
-      const song2 = song2Cell?.textContent.trim().toLowerCase();
-
-      if (song1) {
-        if (!songMap[song1]) songMap[song1] = [];
-        songMap[song1].push(song1Cell);
-      }
-
-      if (song2) {
-        if (!songMap[song2]) songMap[song2] = [];
-        songMap[song2].push(song2Cell);
-      }
-    });
-
-    let colorIndex = 0;
-    const colorMap = {};
-
-    Object.entries(songMap).forEach(([song, cellList]) => {
-      if (cellList.length > 1) {
-        if (!colorMap[song]) {
-          colorMap[song] = `highlight-${colorIndex++ % 10}`;
-        }
-        cellList.forEach(cell => {
-          cell.classList.add(colorMap[song]);
-        });
-      }
-    });
   }
 
   function fetchData() {
@@ -301,7 +260,6 @@
         });
 
         totalCount.textContent = `Total Requests: ${requestsTable.children.length}`;
-        highlightDuplicates();
       })
       .catch(err => {
         console.error("Error loading requests:", err);
@@ -315,6 +273,7 @@
       playedTable.innerHTML = "";
       unknownTable.innerHTML = "";
       knownTimestamps.clear();
+      songMap = {};
       fetchData();
     }
   }
@@ -322,7 +281,7 @@
   fetchData();
   setInterval(fetchData, 10000); // refresh every 10 seconds
 </script>
-
 </body>
 </html>
+
 
