@@ -13,11 +13,15 @@
     h1 {
       text-align: center;
     }
-    #top-bar {
+    .top-bar {
       display: flex;
       justify-content: space-between;
       margin-bottom: 20px;
-      font-size: 18px;
+      padding: 0 5%;
+    }
+    .total-requests {
+      font-weight: bold;
+      font-size: 1.2em;
     }
     table {
       margin: auto;
@@ -34,30 +38,39 @@
       background-color: #111;
       color: white;
     }
-    .tipped {
-      background-color: #fff8e1; /* pale yellow for tips */
-      font-weight: bold;
+    tr:nth-child(even) {
+      background-color: #f2f2f2;
     }
-    .action-btn {
+    tr:nth-child(odd) {
+      background-color: #fff;
+    }
+    td.song-title {
+      font-weight: bold;
+      font-size: 1.1em;
+    }
+    button {
       padding: 6px 12px;
-      margin-right: 6px;
+      margin-right: 5px;
       border: none;
       border-radius: 5px;
       background-color: #007bff;
       color: white;
       cursor: pointer;
     }
-    .action-btn:hover {
+    button:hover {
       background-color: #0056b3;
+    }
+    .section-title {
+      text-align: center;
+      margin-top: 60px;
     }
   </style>
 </head>
 <body>
-  <h1>🎹 Admin - Song Requests 🎶</h1>
-
-  <div id="top-bar">
-    <div>Total Requests: <span id="totalRequests">0</span></div>
-    <button class="action-btn" onclick="resetTables()">Reset</button>
+  <h1>🎶 Admin - Song Requests 🎶</h1>
+  <div class="top-bar">
+    <div class="total-requests" id="totalCount">Total Requests: 0</div>
+    <button onclick="resetAll()">Reset All</button>
   </div>
 
   <table id="requestsTable">
@@ -68,15 +81,13 @@
         <th>Name</th>
         <th>Dedication</th>
         <th>Timestamp</th>
-        <th>Tip</th>
         <th>Action</th>
       </tr>
     </thead>
     <tbody></tbody>
   </table>
 
-  <!-- Played Songs Section -->
-  <h2 style="text-align:center;">✅ Played Songs</h2>
+  <h2 class="section-title">✅ Played Songs</h2>
   <table id="playedTable">
     <thead>
       <tr>
@@ -85,15 +96,13 @@
         <th>Name</th>
         <th>Dedication</th>
         <th>Timestamp</th>
-        <th>Tip</th>
         <th>Action</th>
       </tr>
     </thead>
     <tbody></tbody>
   </table>
 
-  <!-- Songs We Don't Know Section -->
-  <h2 style="text-align:center;">❌ Songs We Don't Know</h2>
+  <h2 class="section-title">🤷‍♂️ Songs We Don't Know</h2>
   <table id="unknownTable">
     <thead>
       <tr>
@@ -102,7 +111,6 @@
         <th>Name</th>
         <th>Dedication</th>
         <th>Timestamp</th>
-        <th>Tip</th>
         <th>Action</th>
       </tr>
     </thead>
@@ -110,88 +118,114 @@
   </table>
 
 <script>
-  const sheetURL = 'https://docs.google.com/spreadsheets/d/1fXffDoYdRAhiyy6efKTi_m1hdR7Y64gPMdolnHA61QE/edit?gid=0#gid=0';
+  const sheetURL = 'https://docs.google.com/spreadsheets/d/1fXffDoYdRAhiyy6efKTi_m1hdR7Y64gPMdolnHA61QE/gviz/tq?tqx=out:json';
 
   const requestsTable = document.querySelector("#requestsTable tbody");
   const playedTable = document.querySelector("#playedTable tbody");
   const unknownTable = document.querySelector("#unknownTable tbody");
-  let renderedRows = new Set();
+  const totalCount = document.getElementById("totalCount");
 
-  function formatDate(timestamp) {
-    const date = new Date(timestamp);
-    const hours = date.getHours() % 12 || 12;
-    const minutes = date.getMinutes().toString().padStart(2, '0');
-    const ampm = date.getHours() >= 12 ? 'p.m.' : 'a.m.';
-    return `${hours}:${minutes} ${ampm} ${date.getMonth()+1}/${date.getDate()}`;
+  let knownTimestamps = new Set();
+
+  function formatTimestamp(raw) {
+    try {
+      const match = raw.match(/Date\((.*?)\)/);
+      if (!match) return raw;
+
+      const parts = match[1].split(',').map(Number);
+      const date = new Date(parts[0], parts[1], parts[2], parts[3], parts[4], parts[5]);
+
+      const options = { hour: 'numeric', minute: 'numeric', hour12: true };
+      const time = date.toLocaleTimeString(undefined, options).toLowerCase();
+      const dateStr = `${date.getMonth() + 1}/${date.getDate()}`;
+
+      return `${time} ${dateStr}`;
+    } catch (e) {
+      return raw;
+    }
   }
 
-  function createRow(cells) {
+  function createTableRow(cells, timestampRaw) {
     const tr = document.createElement("tr");
-    const isTipped = cells[5]?.toLowerCase() === "tipped";
-    if (isTipped) tr.classList.add("tipped");
+    const timestamp = formatTimestamp(timestampRaw);
+    const key = timestampRaw;
 
-    const [timestamp, song1, song2, name, dedication, tip] = [
-      cells[0], cells[1], cells[2], cells[3], cells[4], cells[5] || ""
-    ];
+    if (knownTimestamps.has(key)) return null;
 
-    [song1, song2, name, dedication, formatDate(timestamp), tip].forEach(val => {
+    knownTimestamps.add(key);
+
+    const [_, song1, song2, name, dedication] = cells.map(cell => (cell ? cell.v : ""));
+    const tdData = [song1, song2, name, dedication, timestamp];
+    tdData.forEach((val, idx) => {
       const td = document.createElement("td");
       td.textContent = val;
+      if (idx === 0 || idx === 1) td.classList.add("song-title");
       tr.appendChild(td);
     });
 
     const actionTd = document.createElement("td");
-    const playBtn = document.createElement("button");
-    playBtn.textContent = "Mark as Played";
-    playBtn.className = "action-btn";
-    playBtn.onclick = () => {
+
+    const playedBtn = document.createElement("button");
+    playedBtn.textContent = "Mark as Played";
+    playedBtn.onclick = () => {
       tr.remove();
       playedTable.appendChild(tr);
     };
 
-    const dontKnowBtn = document.createElement("button");
-    dontKnowBtn.textContent = "Don't Know";
-    dontKnowBtn.className = "action-btn";
-    dontKnowBtn.onclick = () => {
+    const unknownBtn = document.createElement("button");
+    unknownBtn.textContent = "Don't Know";
+    unknownBtn.onclick = () => {
       tr.remove();
       unknownTable.appendChild(tr);
     };
 
-    actionTd.appendChild(playBtn);
-    actionTd.appendChild(dontKnowBtn);
+    actionTd.appendChild(playedBtn);
+    actionTd.appendChild(unknownBtn);
     tr.appendChild(actionTd);
+
     return tr;
   }
 
-  function loadRequests() {
+  function fetchData() {
     fetch(sheetURL)
       .then(res => res.text())
       .then(text => {
         const json = JSON.parse(text.substring(47).slice(0, -2));
         const rows = json.table.rows;
-        document.getElementById("totalRequests").textContent = rows.length;
+
+        let newRows = 0;
 
         rows.forEach(row => {
-          const id = row.c.map(c => c?.v).join("|");
-          if (!renderedRows.has(id)) {
-            const tr = createRow(row.c.map(c => c?.v || ""));
+          const timestampRaw = row.c[0]?.v;
+          const tr = createTableRow(row.c, timestampRaw);
+          if (tr) {
             requestsTable.insertBefore(tr, requestsTable.firstChild);
-            renderedRows.add(id);
+            newRows++;
           }
         });
+
+        totalCount.textContent = `Total Requests: ${requestsTable.children.length}`;
+      })
+      .catch(err => {
+        console.error("Error loading requests:", err);
+        alert("Could not load requests. Please check your spreadsheet permissions.");
       });
   }
 
-  function resetTables() {
-    requestsTable.innerHTML = "";
-    playedTable.innerHTML = "";
-    unknownTable.innerHTML = "";
-    renderedRows.clear();
-    loadRequests();
+  function resetAll() {
+    if (confirm("Are you sure you want to reset all lists?")) {
+      requestsTable.innerHTML = "";
+      playedTable.innerHTML = "";
+      unknownTable.innerHTML = "";
+      knownTimestamps.clear();
+      fetchData();
+    }
   }
 
-  loadRequests();
-  setInterval(loadRequests, 5000);
+  fetchData();
+  setInterval(fetchData, 10000); // refresh every 10 seconds
 </script>
+
 </body>
 </html>
+
