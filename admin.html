@@ -193,22 +193,25 @@
     knownTimestamps.add(key);
 
     const [_, song1, song2, name, dedication, tipAmount] = cells.map(cell => (cell ? cell.v : ""));
+
+    // Count songs before rendering
+    const songs = [song1, song2].map(s => s.trim().toLowerCase());
+    songs.forEach(song => {
+      if (song) songMap[song] = (songMap[song] || 0) + 1;
+    });
+
     const tdData = [song1, song2, name, dedication, timestamp];
 
     tdData.forEach((val, idx) => {
       const td = document.createElement("td");
       td.textContent = val;
 
-      if (idx === 0 || idx === 1) td.classList.add("song-title");
-
       if (idx === 0 || idx === 1) {
-        const songKey = val.trim().toLowerCase();
-        if (songKey) {
-          songMap[songKey] = songMap[songKey] ? songMap[songKey] + 1 : 1;
-          if (songMap[songKey] > 1) {
-            const colorIdx = Object.keys(songMap).indexOf(songKey) % highlightColors.length;
-            td.style.backgroundColor = highlightColors[colorIdx];
-          }
+        td.classList.add("song-title");
+        const key = val.trim().toLowerCase();
+        if (key && songMap[key] > 1) {
+          const colorIdx = Object.keys(songMap).indexOf(key) % highlightColors.length;
+          td.style.backgroundColor = highlightColors[colorIdx];
         }
       }
 
