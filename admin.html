@@ -140,6 +140,17 @@
 
   let knownTimestamps = new Set();
 
+  // Create undo buttons and hide them by default
+  const playedUndoBtn = document.querySelector('button[onclick="undoLast(\'played\')"]');
+  const unknownUndoBtn = document.querySelector('button[onclick="undoLast(\'unknown\')"]');
+  playedUndoBtn.style.display = 'none';
+  unknownUndoBtn.style.display = 'none';
+
+  function updateUndoButtons() {
+    playedUndoBtn.style.display = playedTable.children.length > 0 ? 'inline-block' : 'none';
+    unknownUndoBtn.style.display = unknownTable.children.length > 0 ? 'inline-block' : 'none';
+  }
+
   function formatTimestamp(raw) {
     try {
       const match = raw.match(/Date\((.*?)\)/);
@@ -182,6 +193,7 @@
     playedBtn.onclick = () => {
       tr.remove();
       playedTable.appendChild(tr);
+      updateUndoButtons();
     };
 
     const unknownBtn = document.createElement("button");
@@ -189,6 +201,7 @@
     unknownBtn.onclick = () => {
       tr.remove();
       unknownTable.appendChild(tr);
+      updateUndoButtons();
     };
 
     actionTd.appendChild(playedBtn);
@@ -227,6 +240,7 @@
       playedTable.innerHTML = "";
       unknownTable.innerHTML = "";
       knownTimestamps.clear();
+      updateUndoButtons();
       fetchData();
     }
   }
@@ -241,11 +255,13 @@
       fromTable.removeChild(last);
       requestsTable.insertBefore(last, requestsTable.firstChild);
     }
+    updateUndoButtons();
   }
 
   fetchData();
   setInterval(fetchData, 10000); // refresh every 10 seconds
 </script>
+
 
 </body>
 </html>
