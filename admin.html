@@ -48,9 +48,17 @@
       font-weight: bold;
       font-size: 1.1em;
     }
-    .duplicate {
-      background-color: #ffe0e0 !important;
-    }
+    .highlight-0 { background-color: #ffd6d6 !important; }
+    .highlight-1 { background-color: #d6eaff !important; }
+    .highlight-2 { background-color: #d6ffd6 !important; }
+    .highlight-3 { background-color: #fff5d6 !important; }
+    .highlight-4 { background-color: #f0d6ff !important; }
+    .highlight-5 { background-color: #ffe3f1 !important; }
+    .highlight-6 { background-color: #d6fff7 !important; }
+    .highlight-7 { background-color: #f9ffd6 !important; }
+    .highlight-8 { background-color: #ecd6ff !important; }
+    .highlight-9 { background-color: #ffebd6 !important; }
+
     button {
       padding: 6px 12px;
       margin-right: 5px;
@@ -226,11 +234,14 @@
 
   function highlightDuplicates() {
     const allSongCells = requestsTable.querySelectorAll("td.song-title");
-    allSongCells.forEach(td => td.classList.remove("duplicate"));
+    allSongCells.forEach(td => {
+      td.classList.remove(...td.classList);
+      td.classList.add("song-title");
+    });
 
     const songMap = {};
-
     const rows = Array.from(requestsTable.querySelectorAll("tr"));
+
     rows.forEach(tr => {
       const song1Cell = tr.children[0];
       const song2Cell = tr.children[1];
@@ -249,9 +260,17 @@
       }
     });
 
-    Object.values(songMap).forEach(cellList => {
+    let colorIndex = 0;
+    const colorMap = {};
+
+    Object.entries(songMap).forEach(([song, cellList]) => {
       if (cellList.length > 1) {
-        cellList.forEach(cell => cell.classList.add("duplicate"));
+        if (!colorMap[song]) {
+          colorMap[song] = `highlight-${colorIndex++ % 10}`;
+        }
+        cellList.forEach(cell => {
+          cell.classList.add(colorMap[song]);
+        });
       }
     });
   }
@@ -263,14 +282,11 @@
         const json = JSON.parse(text.substring(47).slice(0, -2));
         const rows = json.table.rows;
 
-        let newRows = 0;
-
         rows.forEach(row => {
           const timestampRaw = row.c[0]?.v;
           const tr = createTableRow(row.c, timestampRaw);
           if (tr) {
             requestsTable.insertBefore(tr, requestsTable.firstChild);
-            newRows++;
           }
         });
 
