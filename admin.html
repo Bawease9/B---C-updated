@@ -76,7 +76,7 @@
     <tbody></tbody>
   </table>
 
-  <script>
+<script>
   const sheetURL = 'https://docs.google.com/spreadsheets/d/1fXffDoYdRAhiyy6efKTi_m1hdR7Y64gPMdolnHA61QE/gviz/tq?tqx=out:json';
 
   const requestsTable = document.querySelector("#requestsTable tbody");
@@ -153,7 +153,11 @@
         requestsTable.appendChild(tr);
       });
     })
-    .catch(err
+    .catch(err => {
+      console.error("Error loading requests:", err);
+      alert("Could not load requests. Please check your spreadsheet permissions.");
+    });
+</script>
 
 </body>
 </html>
