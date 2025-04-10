@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Brady & Caroline Requests</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #fff;
+      color: #111;
+      padding: 20px;
+      text-align: center;
+      margin: 0;
+    }
+    img {
+      width: 180px;
+      margin-top: 10px;
+      margin-bottom: 20px;
+    }
+    .container {
+      max-width: 500px;
+      margin: 0 auto;
+      padding: 0 20px;
+    }
+    input {
+      width: 100%;
+      box-sizing: border-box;
+      margin: 10px 0;
+      padding: 12px;
+      font-size: 16px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+    }
+    .button, .venmo-button {
+      width: auto;
+      padding: 14px 28px;
+      margin-top: 15px;
+      font-size: 16px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      display: inline-block;
+    }
+    .button {
+      background: #111;
+      color: white;
+    }
+    .venmo-button {
+      background-color: #3D95CE;
+      color: white;
+      text-decoration: none;
+    }
+    .venmo-button:hover {
+      background-color: #2f80b5;
+    }
+    h1 {
+      font-size: 2em;
+      margin: 20px 0;
+    }
+    .emoji {
+      font-size: 1.3em;
+      margin: 0 8px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <img src="logo.png" alt="Brady and Caroline Logo" />
+    <h1><span class="emoji">🎶</span> Make A Request <span class="emoji">🎶</span></h1>
+
+    <form action="thankyou.html" method="GET">
+  <input name="song1" type="text" placeholder="Song Choice #1" required />
+  <button class="button" type="submit">Submit Request</button>
+</form>
+
+
+    <a class="venmo-button" href="https://venmo.com/Brady-Wease" target="_blank">💸 Tip via Venmo</a>
+  </div>
+</body>
+</html>
