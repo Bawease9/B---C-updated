@@ -1,10 +1,10 @@
-require('dotenv').config(); // this loads the .env variables
+// /netlify/functions/create-checkout-session.js
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 
 exports.handler = async (event) => {
-  try {
-    const { amount, song1, song2, name, dedication } = JSON.parse(event.body);
+  const { amount } = JSON.parse(event.body);
 
+  try {
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       line_items: [
@@ -12,28 +12,26 @@ exports.handler = async (event) => {
           price_data: {
             currency: 'usd',
             product_data: {
-              name: `Tip for song request: ${song1 || ''} / ${song2 || ''}`,
-              description: dedication || 'No dedication',
+              name: 'Piano Song Request Tip',
             },
-            unit_amount: amount * 100, // amount in cents
+            unit_amount: amount,
           },
           quantity: 1,
         },
       ],
       mode: 'payment',
-      success_url: 'https://brady-and-caroline-requests.netlify.app/thankyou.html',
-      cancel_url: 'https://brady-and-caroline-requests.netlify.app/index.html',
+      success_url: 'https://your-site.netlify.app/thankyou.html',
+      cancel_url: 'https://your-site.netlify.app',
     });
 
     return {
       statusCode: 200,
-      body: JSON.stringify({ id: session.id }),
+      body: JSON.stringify({ url: session.url }),
     };
-  } catch (err) {
-    console.error(err);
+  } catch (error) {
     return {
       statusCode: 500,
-      body: JSON.stringify({ error: 'Failed to create checkout session' }),
+      body: JSON.stringify({ error: error.message }),
     };
   }
 };
