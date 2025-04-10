@@ -48,6 +48,9 @@
       font-weight: bold;
       font-size: 1.1em;
     }
+    .duplicate {
+      background-color: #ffe0e0 !important;
+    }
     button {
       padding: 6px 12px;
       margin-right: 5px;
@@ -155,6 +158,7 @@
 
     const [_, song1, song2, name, dedication] = cells.map(cell => (cell ? cell.v : ""));
     const tdData = [song1, song2, name, dedication, timestamp];
+
     tdData.forEach((val, idx) => {
       const td = document.createElement("td");
       td.textContent = val;
@@ -168,18 +172,16 @@
     playedBtn.textContent = "Mark as Played";
     playedBtn.onclick = () => {
       tr.remove();
-      addUndoButton(tr, requestsTable);
-      playedTable.appendChild(tr);
-      updateTotal();
+      addUndoRow(tr, playedTable);
+      highlightDuplicates();
     };
 
     const unknownBtn = document.createElement("button");
     unknownBtn.textContent = "Don't Know";
     unknownBtn.onclick = () => {
       tr.remove();
-      addUndoButton(tr, requestsTable);
-      unknownTable.appendChild(tr);
-      updateTotal();
+      addUndoRow(tr, unknownTable);
+      highlightDuplicates();
     };
 
     actionTd.appendChild(playedBtn);
@@ -189,50 +191,69 @@
     return tr;
   }
 
-  function addUndoButton(tr, destinationTable) {
-    const actionCell = tr.querySelector("td:last-child");
-    actionCell.innerHTML = ""; // Clear existing buttons
-
+  function addUndoRow(row, targetTable) {
+    const actionCell = row.lastElementChild;
+    actionCell.innerHTML = '';
     const undoBtn = document.createElement("button");
     undoBtn.textContent = "Undo";
     undoBtn.onclick = () => {
-      tr.remove();
-      restoreActionButtons(tr);
-      destinationTable.insertBefore(tr, destinationTable.firstChild);
-      updateTotal();
-    };
+      row.remove();
+      row.lastElementChild.innerHTML = '';
+      const playedBtn = document.createElement("button");
+      playedBtn.textContent = "Mark as Played";
+      playedBtn.onclick = () => {
+        row.remove();
+        addUndoRow(row, playedTable);
+        highlightDuplicates();
+      };
 
+      const unknownBtn = document.createElement("button");
+      unknownBtn.textContent = "Don't Know";
+      unknownBtn.onclick = () => {
+        row.remove();
+        addUndoRow(row, unknownTable);
+        highlightDuplicates();
+      };
+
+      row.lastElementChild.appendChild(playedBtn);
+      row.lastElementChild.appendChild(unknownBtn);
+      requestsTable.insertBefore(row, requestsTable.firstChild);
+      highlightDuplicates();
+    };
     actionCell.appendChild(undoBtn);
+    targetTable.appendChild(row);
   }
 
-  function restoreActionButtons(tr) {
-    const actionCell = tr.querySelector("td:last-child");
-    actionCell.innerHTML = "";
+  function highlightDuplicates() {
+    const allSongCells = requestsTable.querySelectorAll("td.song-title");
+    allSongCells.forEach(td => td.classList.remove("duplicate"));
 
-    const playedBtn = document.createElement("button");
-    playedBtn.textContent = "Mark as Played";
-    playedBtn.onclick = () => {
-      tr.remove();
-      addUndoButton(tr, requestsTable);
-      playedTable.appendChild(tr);
-      updateTotal();
-    };
+    const songMap = {};
 
-    const unknownBtn = document.createElement("button");
-    unknownBtn.textContent = "Don't Know";
-    unknownBtn.onclick = () => {
-      tr.remove();
-      addUndoButton(tr, requestsTable);
-      unknownTable.appendChild(tr);
-      updateTotal();
-    };
+    const rows = Array.from(requestsTable.querySelectorAll("tr"));
+    rows.forEach(tr => {
+      const song1Cell = tr.children[0];
+      const song2Cell = tr.children[1];
 
-    actionCell.appendChild(playedBtn);
-    actionCell.appendChild(unknownBtn);
-  }
+      const song1 = song1Cell?.textContent.trim().toLowerCase();
+      const song2 = song2Cell?.textContent.trim().toLowerCase();
 
-  function updateTotal() {
-    totalCount.textContent = `Total Requests: ${requestsTable.children.length}`;
+      if (song1) {
+        if (!songMap[song1]) songMap[song1] = [];
+        songMap[song1].push(song1Cell);
+      }
+
+      if (song2) {
+        if (!songMap[song2]) songMap[song2] = [];
+        songMap[song2].push(song2Cell);
+      }
+    });
+
+    Object.values(songMap).forEach(cellList => {
+      if (cellList.length > 1) {
+        cellList.forEach(cell => cell.classList.add("duplicate"));
+      }
+    });
   }
 
   function fetchData() {
@@ -242,15 +263,19 @@
         const json = JSON.parse(text.substring(47).slice(0, -2));
         const rows = json.table.rows;
 
+        let newRows = 0;
+
         rows.forEach(row => {
           const timestampRaw = row.c[0]?.v;
           const tr = createTableRow(row.c, timestampRaw);
           if (tr) {
             requestsTable.insertBefore(tr, requestsTable.firstChild);
+            newRows++;
           }
         });
 
-        updateTotal();
+        totalCount.textContent = `Total Requests: ${requestsTable.children.length}`;
+        highlightDuplicates();
       })
       .catch(err => {
         console.error("Error loading requests:", err);
