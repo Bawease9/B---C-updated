@@ -64,6 +64,13 @@
       text-align: center;
       margin-top: 60px;
     }
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 5%;
+      margin-top: 60px;
+    }
   </style>
 </head>
 <body>
@@ -87,7 +94,10 @@
     <tbody></tbody>
   </table>
 
-  <h2 class="section-title">✅ Played Songs</h2>
+  <div class="section-header">
+    <h2 class="section-title">✅ Played Songs</h2>
+    <button onclick="undoLast('played')">Undo</button>
+  </div>
   <table id="playedTable">
     <thead>
       <tr>
@@ -102,7 +112,10 @@
     <tbody></tbody>
   </table>
 
-  <h2 class="section-title">🤷‍♂️ Songs We Don't Know</h2>
+  <div class="section-header">
+    <h2 class="section-title">🤷‍♂️ Songs We Don't Know</h2>
+    <button onclick="undoLast('unknown')">Undo</button>
+  </div>
   <table id="unknownTable">
     <thead>
       <tr>
@@ -151,7 +164,6 @@
     const key = timestampRaw;
 
     if (knownTimestamps.has(key)) return null;
-
     knownTimestamps.add(key);
 
     const [_, song1, song2, name, dedication] = cells.map(cell => (cell ? cell.v : ""));
@@ -193,14 +205,11 @@
         const json = JSON.parse(text.substring(47).slice(0, -2));
         const rows = json.table.rows;
 
-        let newRows = 0;
-
         rows.forEach(row => {
           const timestampRaw = row.c[0]?.v;
           const tr = createTableRow(row.c, timestampRaw);
           if (tr) {
             requestsTable.insertBefore(tr, requestsTable.firstChild);
-            newRows++;
           }
         });
 
@@ -219,6 +228,18 @@
       unknownTable.innerHTML = "";
       knownTimestamps.clear();
       fetchData();
+    }
+  }
+
+  function undoLast(section) {
+    let fromTable;
+    if (section === "played") fromTable = playedTable;
+    if (section === "unknown") fromTable = unknownTable;
+
+    const last = fromTable.lastElementChild;
+    if (last) {
+      fromTable.removeChild(last);
+      requestsTable.insertBefore(last, requestsTable.firstChild);
     }
   }
 
