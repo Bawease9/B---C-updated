@@ -92,7 +92,9 @@
         <th>Name</th>
         <th>Dedication</th>
         <th>Timestamp</th>
+        <th>Tip Amount</th>
         <th>Action</th>
+
       </tr>
     </thead>
     <tbody></tbody>
@@ -107,7 +109,9 @@
         <th>Name</th>
         <th>Dedication</th>
         <th>Timestamp</th>
+        <th>Tip Amount</th>
         <th>Action</th>
+
       </tr>
     </thead>
     <tbody></tbody>
@@ -122,7 +126,9 @@
         <th>Name</th>
         <th>Dedication</th>
         <th>Timestamp</th>
+        <th>Tip Amount</th>
         <th>Action</th>
+
       </tr>
     </thead>
     <tbody></tbody>
@@ -171,8 +177,9 @@
     if (knownTimestamps.has(key)) return null;
     knownTimestamps.add(key);
 
-    const [_, song1, song2, name, dedication] = cells.map(cell => (cell ? cell.v : ""));
-    const tdData = [song1, song2, name, dedication, timestamp];
+    const [_, song1, song2, name, dedication, tipAmount] = cells.map(cell => (cell ? cell.v : ""));
+const tdData = [song1, song2, name, dedication, timestamp, tipAmount || ""];
+
 
     tdData.forEach((val, idx) => {
       const td = document.createElement("td");
