@@ -2,146 +2,71 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Admin Dashboard - Requests</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Admin - Song Requests</title>
   <style>
     body {
-      font-family: 'Arial', sans-serif;
-      background: #f5f5f5;
-      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f9f9f9;
       padding: 20px;
     }
     h1 {
       text-align: center;
-      margin-bottom: 20px;
-    }
-    .controls {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 15px;
-      flex-wrap: wrap;
-    }
-    input[type="text"] {
-      padding: 10px;
-      font-size: 16px;
-      border: 1px solid #ccc;
-      border-radius: 8px;
-      width: 100%;
-      max-width: 300px;
-      margin-bottom: 10px;
-    }
-    button {
-      background: #111;
-      color: white;
-      border: none;
-      padding: 10px 20px;
-      border-radius: 8px;
-      font-size: 16px;
-      cursor: pointer;
-      margin-left: 10px;
     }
     table {
-      width: 100%;
+      margin: auto;
       border-collapse: collapse;
-      background-color: white;
-      border-radius: 8px;
-      overflow: hidden;
+      width: 90%;
     }
     th, td {
-      text-align: left;
+      border: 1px solid #ddd;
       padding: 12px;
-      border-bottom: 1px solid #ddd;
+      text-align: left;
     }
     th {
       background-color: #111;
       color: white;
-      cursor: pointer;
-      position: sticky;
-      top: 0;
-    }
-    tr:nth-child(even) {
-      background-color: #f0f0f0;
-    }
-    tr.tip {
-      background-color: #d4edda;
     }
   </style>
 </head>
 <body>
-  <h1>📋 Request Dashboard</h1>
-
-  <div class="controls">
-    <input type="text" id="searchInput" placeholder="Search requests..." onkeyup="filterTable()">
-    <button onclick="fetchData()">🔄 Refresh</button>
-  </div>
-
+  <h1>🎶 Admin - Song Requests 🎶</h1>
   <table id="requestsTable">
     <thead>
       <tr>
-        <th onclick="sortTable(0)">Song #1</th>
-        <th onclick="sortTable(1)">Song #2</th>
-        <th onclick="sortTable(2)">Name</th>
-        <th onclick="sortTable(3)">Dedication</th>
-        <th onclick="sortTable(4)">Timestamp</th>
+        <th>Song #1</th>
+        <th>Song #2</th>
+        <th>Name</th>
+        <th>Dedication</th>
+        <th>Timestamp</th>
       </tr>
     </thead>
-    <tbody>
-      <!-- Requests will be injected here -->
-    </tbody>
+    <tbody></tbody>
   </table>
 
   <script>
-    const sheetURL = "https://script.google.com/macros/s/AKfycbwWd6jK4p7V23kJuTwluRhc1VFnpCrp0SZFnbQpmTxV-HxcPYNWaU3piEn0Ko5D3ODg/exec";
+    const sheetURL = 'https://docs.google.com/spreadsheets/d/1fXffDoYdRAhiyy6efKTi_m1hdR7Y64gPMdolnHA61QE/gviz/tq?tqx=out:json';
 
-    async function fetchData() {
-      try {
-        const response = await fetch(sheetURL);
-        const data = await response.json();
-        populateTable(data);
-      } catch (error) {
-        alert("Failed to fetch data");
-        console.error(error);
-      }
-    }
+    fetch(sheetURL)
+      .then(res => res.text())
+      .then(text => {
+        const json = JSON.parse(text.substring(47).slice(0, -2));
+        const table = document.querySelector("#requestsTable tbody");
 
-    function populateTable(data) {
-      const tbody = document.getElementById("requestsTable").getElementsByTagName("tbody")[0];
-      tbody.innerHTML = "";
-      data.forEach(row => {
-        const tr = document.createElement("tr");
-        if (row.tip) tr.classList.add("tip");
-        tr.innerHTML = `
-          <td>${row.song1}</td>
-          <td>${row.song2}</td>
-          <td>${row.name}</td>
-          <td>${row.dedication}</td>
-          <td>${row.timestamp || ''}</td>
-        `;
-        tbody.appendChild(tr);
+        json.table.rows.forEach(row => {
+          const tr = document.createElement("tr");
+          row.c.forEach(cell => {
+            const td = document.createElement("td");
+            td.textContent = cell ? cell.v : "";
+            tr.appendChild(td);
+          });
+          table.appendChild(tr);
+        });
+      })
+      .catch(err => {
+        console.error("Error loading requests:", err);
+        alert("Could not load requests. Please check your spreadsheet permissions.");
       });
-    }
-
-    function filterTable() {
-      const input = document.getElementById("searchInput");
-      const filter = input.value.toLowerCase();
-      const trs = document.querySelectorAll("#requestsTable tbody tr");
-      trs.forEach(row => {
-        const text = row.innerText.toLowerCase();
-        row.style.display = text.includes(filter) ? "" : "none";
-      });
-    }
-
-    function sortTable(colIndex) {
-      const table = document.getElementById("requestsTable");
-      const rows = Array.from(table.rows).slice(1);
-      const sorted = rows.sort((a, b) => a.cells[colIndex].innerText.localeCompare(b.cells[colIndex].innerText));
-      const tbody = table.getElementsByTagName("tbody")[0];
-      tbody.innerHTML = "";
-      sorted.forEach(row => tbody.appendChild(row));
-    }
-
-    fetchData(); // Load data on page load
   </script>
 </body>
 </html>
