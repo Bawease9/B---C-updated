@@ -16,10 +16,8 @@
       align-items: center;
       margin-bottom: 20px;
     }
-    .left-controls {
-      display: flex;
-      align-items: center;
-      gap: 10px;
+    .top-bar h1 {
+      margin: 0;
     }
     .status-info {
       text-align: right;
@@ -27,10 +25,6 @@
     .status-info span {
       font-weight: bold;
       font-size: 1.1em;
-    }
-    select {
-      padding: 6px 10px;
-      font-size: 1em;
     }
     table {
       margin: auto;
@@ -77,13 +71,7 @@
 <body>
 
   <div class="top-bar">
-    <div class="left-controls">
-      <label for="sortOrder">Sort by:</label>
-      <select id="sortOrder">
-        <option value="desc">Most Recent</option>
-        <option value="asc">Oldest</option>
-      </select>
-    </div>
+    <h1>🎶 Admin - Song Requests 🎶</h1>
     <div class="status-info">
       <div>Total Requests: <span id="requestCount">0</span></div>
       <button onclick="resetAll()">Reset All</button>
@@ -120,145 +108,113 @@
   </table>
 
   <script>
-  const sheetURL = 'https://docs.google.com/spreadsheets/d/1fXffDoYdRAhiyy6efKTi_m1hdR7Y64gPMdolnHA61QE/gviz/tq?tqx=out:json';
+    const sheetURL = 'https://docs.google.com/spreadsheets/d/1fXffDoYdRAhiyy6efKTi_m1hdR7Y64gPMdolnHA61QE/gviz/tq?tqx=out:json';
 
-  const requestsTable = document.querySelector("#requestsTable tbody");
-  const playedTable = document.querySelector("#playedTable tbody");
-  const requestCount = document.getElementById("requestCount");
-  const sortOrderDropdown = document.getElementById("sortOrder");
-  const dedicationFilterDropdown = document.getElementById("dedicationFilter");
+    const requestsTable = document.querySelector("#requestsTable tbody");
+    const playedTable = document.querySelector("#playedTable tbody");
+    const requestCount = document.getElementById("requestCount");
 
-  const playedTimestamps = new Set();
+    const playedTimestamps = new Set(); // Track played requests
 
-  function formatTimestamp(raw) {
-    try {
-      const match = raw.match(/Date\(([^)]+)\)/);
-      if (!match) return raw;
-      const parts = match[1].split(',').map(Number);
-      const date = new Date(parts[0], parts[1], parts[2], parts[3], parts[4], parts[5]);
+    function formatTimestamp(raw) {
+      try {
+        const match = raw.match(/Date\(([^)]+)\)/);
+        if (!match) return raw;
+        const parts = match[1].split(',').map(Number);
+        const date = new Date(parts[0], parts[1], parts[2], parts[3], parts[4], parts[5]);
 
-      const options = { hour: 'numeric', minute: 'numeric', hour12: true };
-      const time = date.toLocaleTimeString(undefined, options);
-      const dateString = `${date.getMonth() + 1}/${date.getDate()}`;
-      return `${time} ${dateString}`;
-    } catch {
-      return raw;
+        const options = { hour: 'numeric', minute: 'numeric', hour12: true };
+        const time = date.toLocaleTimeString(undefined, options);
+        const dateString = `${date.getMonth() + 1}/${date.getDate()}`;
+        return `${time} ${dateString}`;
+      } catch {
+        return raw;
+      }
     }
-  }
 
-  function extractTimestampValue(raw) {
-    try {
-      const match = raw.match(/Date\(([^)]+)\)/);
-      if (!match) return 0;
-      const parts = match[1].split(',').map(Number);
-      const date = new Date(parts[0], parts[1], parts[2], parts[3], parts[4], parts[5]);
-      return date.getTime();
-    } catch {
-      return 0;
-    }
-  }
+    function createTableRow(row) {
+      const tr = document.createElement("tr");
+      const cells = row.c.map(cell => (cell ? cell.v : ""));
 
-  function createTableRow(row) {
-    const tr = document.createElement("tr");
-    const cells = row.c.map(cell => (cell ? cell.v : ""));
+      const song1 = cells[1];
+      const song2 = cells[2];
+      const name = cells[3];
+      const dedication = cells[4];
+      const timestampRaw = cells[0];
+      const timestamp = formatTimestamp(timestampRaw);
 
-    const song1 = cells[1];
-    const song2 = cells[2];
-    const name = cells[3];
-    const dedication = cells[4];
-    const timestampRaw = cells[0];
-    const timestampFormatted = formatTimestamp(timestampRaw);
-    const timestampValue = extractTimestampValue(timestampRaw);
+      const cellValues = [song1, song2, name, dedication, timestamp];
+      cellValues.forEach((val, idx) => {
+        const td = document.createElement("td");
+        td.textContent = val;
+        if (idx === 0 || idx === 1) td.classList.add("song-cell");
+        tr.appendChild(td);
+      });
 
-    const cellValues = [song1, song2, name, dedication, timestampFormatted];
-    cellValues.forEach((val, idx) => {
-      const td = document.createElement("td");
-      td.textContent = val;
-      if (idx === 0 || idx === 1) td.classList.add("song-cell");
-      tr.appendChild(td);
-    });
+      const actionTd = document.createElement("td");
+      const button = document.createElement("button");
+      button.textContent = "Mark as Played";
 
-    const actionTd = document.createElement("td");
-    const button = document.createElement("button");
-    button.textContent = "Mark as Played";
-
-    button.onclick = () => {
-      tr.remove();
-      playedTimestamps.add(timestampRaw);
-      button.textContent = "Return to List";
       button.onclick = () => {
         tr.remove();
-        button.textContent = "Mark as Played";
+        playedTimestamps.add(timestampRaw);
+        button.textContent = "Return to List";
         button.onclick = () => {
-          playedTable.removeChild(tr);
+          tr.remove();
+          button.textContent = "Mark as Played";
+          button.onclick = () => {
+            playedTable.removeChild(tr);
+            requestsTable.insertBefore(tr, requestsTable.firstChild);
+            playedTimestamps.delete(timestampRaw);
+          };
           requestsTable.insertBefore(tr, requestsTable.firstChild);
           playedTimestamps.delete(timestampRaw);
         };
-        requestsTable.insertBefore(tr, requestsTable.firstChild);
-        playedTimestamps.delete(timestampRaw);
+        playedTable.appendChild(tr);
       };
-      playedTable.appendChild(tr);
-    };
 
-    actionTd.appendChild(button);
-    tr.appendChild(actionTd);
+      actionTd.appendChild(button);
+      tr.appendChild(actionTd);
 
-    return {
-      rowElement: tr,
-      timestampValue,
-      rawTimestamp: timestampRaw,
-      dedication
-    };
-  }
-
-  function loadData() {
-    fetch(sheetURL)
-      .then(res => res.text())
-      .then(text => {
-        const json = JSON.parse(text.substring(47).slice(0, -2));
-        const rows = json.table.rows.map(row => createTableRow(row));
-
-        const sortOrder = sortOrderDropdown.value;
-        const dedicationFilter = dedicationFilterDropdown.value;
-
-        const visibleRows = rows.filter(r => {
-          if (playedTimestamps.has(r.rawTimestamp)) return false;
-          if (dedicationFilter === "with" && !r.dedication.trim()) return false;
-          if (dedicationFilter === "without" && r.dedication.trim()) return false;
-          return true;
-        });
-
-        visibleRows.sort((a, b) => {
-          return sortOrder === "asc"
-            ? a.timestampValue - b.timestampValue
-            : b.timestampValue - a.timestampValue;
-        });
-
-        requestsTable.innerHTML = "";
-        visibleRows.forEach(r => requestsTable.appendChild(r.rowElement));
-        requestCount.textContent = visibleRows.length;
-      })
-      .catch(err => {
-        console.error("Error loading requests:", err);
-        alert("Could not load requests. Please check your spreadsheet permissions.");
-      });
-  }
-
-  function resetAll() {
-    if (confirm("Are you sure you want to clear both lists?")) {
-      requestsTable.innerHTML = "";
-      playedTable.innerHTML = "";
-      playedTimestamps.clear();
-      requestCount.textContent = "0";
+      return {
+        rowElement: tr,
+        timestampValue: new Date(timestampRaw.match(/\d+/g).join(',')).getTime(),
+        rawTimestamp: timestampRaw
+      };
     }
-  }
 
-  sortOrderDropdown.addEventListener("change", loadData);
-  dedicationFilterDropdown.addEventListener("change", loadData);
+    function loadData() {
+      fetch(sheetURL)
+        .then(res => res.text())
+        .then(text => {
+          const json = JSON.parse(text.substring(47).slice(0, -2));
+          const rows = json.table.rows
+            .map(row => createTableRow(row))
+            .filter(r => !playedTimestamps.has(r.rawTimestamp)); // exclude played
+          
+          rows.sort((a, b) => b.timestampValue - a.timestampValue); // Newest first
 
-  loadData();
-  setInterval(loadData, 15000); // Refresh every 15 seconds
-</script>
+          requestsTable.innerHTML = "";
+          rows.forEach(r => requestsTable.appendChild(r.rowElement));
+          requestCount.textContent = rows.length;
+        })
+        .catch(err => {
+          console.error("Error loading requests:", err);
+          alert("Could not load requests. Please check your spreadsheet permissions.");
+        });
+    }
 
+    function resetAll() {
+      if (confirm("Are you sure you want to clear both lists?")) {
+        requestsTable.innerHTML = "";
+        playedTable.innerHTML = "";
+        playedTimestamps.clear();
+        requestCount.textContent = "0";
+      }
+    }
+
+    loadData();
+    setInterval(loadData, 15000); // Refresh every 15 seconds
+  </script>
 </body>
 </html>
