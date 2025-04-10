@@ -77,64 +77,83 @@
   </table>
 
   <script>
-    const sheetURL = 'https://docs.google.com/spreadsheets/d/1fXffDoYdRAhiyy6efKTi_m1hdR7Y64gPMdolnHA61QE/gviz/tq?tqx=out:json';
+  const sheetURL = 'https://docs.google.com/spreadsheets/d/1fXffDoYdRAhiyy6efKTi_m1hdR7Y64gPMdolnHA61QE/gviz/tq?tqx=out:json';
 
-    const requestsTable = document.querySelector("#requestsTable tbody");
-    const playedTable = document.querySelector("#playedTable tbody");
+  const requestsTable = document.querySelector("#requestsTable tbody");
 
-    fetch(sheetURL)
-      .then(res => res.text())
-      .then(text => {
-        const json = JSON.parse(text.substring(47).slice(0, -2));
-        
-        json.table.rows.forEach(row => {
-          const tr = createTableRow(row);
-          requestsTable.appendChild(tr);
-        });
-      })
-      .catch(err => {
-        console.error("Error loading requests:", err);
-        alert("Could not load requests. Please check your spreadsheet permissions.");
-      });
+  // Create a separate "Played Songs" section
+  const playedSection = document.createElement("div");
+  playedSection.innerHTML = `
+    <h2 style="text-align:center; margin-top:40px;">✅ Played Songs</h2>
+    <table style="margin:auto; border-collapse: collapse; width: 90%;" id="playedTable">
+      <thead>
+        <tr>
+          <th>Song #1</th>
+          <th>Song #2</th>
+          <th>Name</th>
+          <th>Dedication</th>
+          <th>Timestamp</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  `;
+  document.body.appendChild(playedSection);
+  const playedTable = playedSection.querySelector("tbody");
 
-    function createTableRow(row) {
-      const tr = document.createElement("tr");
+  function createTableRow(row) {
+    const tr = document.createElement("tr");
+    const cells = row.c.map(cell => (cell ? cell.v : ""));
 
-      row.c.forEach(cell => {
-        const td = document.createElement("td");
-        td.textContent = cell ? cell.v : "";
-        tr.appendChild(td);
-      });
+    const song1 = cells[1];
+    const song2 = cells[2];
+    const name = cells[3];
+    const dedication = cells[4];
+    const timestamp = cells[0];
 
-      const actionTd = document.createElement("td");
-      const button = document.createElement("button");
-      button.textContent = "Mark as Played";
+    const columns = [song1, song2, name, dedication, timestamp];
+    columns.forEach(value => {
+      const td = document.createElement("td");
+      td.textContent = value;
+      tr.appendChild(td);
+    });
 
+    const actionTd = document.createElement("td");
+    const button = document.createElement("button");
+    button.textContent = "Mark as Played";
+
+    button.onclick = () => {
+      tr.remove();
+      button.textContent = "Return to List";
       button.onclick = () => {
         tr.remove();
-        button.textContent = "Return to List";
+        button.textContent = "Mark as Played";
         button.onclick = () => {
-          tr.remove();
-          button.textContent = "Mark as Played";
-          button.onclick = () => {
-            tr.remove();
-            button.textContent = "Return to List";
-            button.onclick = () => {
-              playedTable.removeChild(tr);
-              requestsTable.appendChild(tr);
-            };
-            playedTable.appendChild(tr);
-          };
+          playedTable.removeChild(tr);
           requestsTable.appendChild(tr);
         };
-        playedTable.appendChild(tr);
+        requestsTable.appendChild(tr);
       };
+      playedTable.appendChild(tr);
+    };
 
-      actionTd.appendChild(button);
-      tr.appendChild(actionTd);
+    actionTd.appendChild(button);
+    tr.appendChild(actionTd);
 
-      return tr;
-    }
-  </script>
+    return tr;
+  }
+
+  fetch(sheetURL)
+    .then(res => res.text())
+    .then(text => {
+      const json = JSON.parse(text.substring(47).slice(0, -2));
+      json.table.rows.forEach(row => {
+        const tr = createTableRow(row);
+        requestsTable.appendChild(tr);
+      });
+    })
+    .catch(err
+
 </body>
 </html>
