@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Admin Dashboard - Brady & Caroline</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f3f3f3;
+      color: #111;
+      padding: 20px;
+      text-align: center;
+    }
+    select {
+      margin-bottom: 20px;
+      padding: 8px 12px;
+      font-size: 16px;
+    }
+    table {
+      width: 100%;
+      max-width: 800px;
+      margin: 0 auto;
+      border-collapse: collapse;
+    }
+    th, td {
+      padding: 12px;
+      border: 1px solid #ddd;
+    }
+    th {
+      background-color: #111;
+      color: white;
+    }
+    button {
+      padding: 8px 16px;
+      background-color: #e74c3c;
+      color: white;
+      border: none;
+      cursor: pointer;
+      border-radius: 6px;
+    }
+    button:hover {
+      background-color: #c0392b;
+    }
+  </style>
+</head>
+<body>
+  <h1>🎹 Admin Dashboard 🎶</h1>
+
+  <label for="filter">Sort Requests:</label>
+  <select id="filter" onchange="applyFilter()">
+    <option value="recent">Most Recent</option>
+    <option value="song1">Song #1 A-Z</option>
+    <option value="song2">Song #2 A-Z</option>
+  </select>
+
+  <table id="requestsTable">
+    <thead>
+      <tr>
+        <th>Song #1</th>
+        <th>Song #2</th>
+        <th>Name</th>
+        <th>Dedication</th>
+        <th>Action</th>
+      </tr>
+    </thead>
+    <tbody>
+      <!-- Requests will load here -->
+    </tbody>
+  </table>
+
+  <script>
+    const API_URL = "https://sheetdb.io/api/v1/d8852m1f9bb64";
+    let allRequests = [];
+
+    function loadRequests() {
+      fetch(API_URL)
+        .then(res => res.json())
+        .then(data => {
+          allRequests = data;
+          applyFilter();
+        });
+    }
+
+    function applyFilter() {
+      const filter = document.getElementById("filter").value;
+      let sorted = [...allRequests];
+
+      if (filter === "song1") {
+        sorted.sort((a, b) => (a.song1 || "").localeCompare(b.song1 || ""));
+      } else if (filter === "song2") {
+        sorted.sort((a, b) => (a.song2 || "").localeCompare(b.song2 || ""));
+      } // else "recent" is default (original order)
+
+      renderTable(sorted);
+    }
+
+    function renderTable(data) {
+      const tbody = document.querySelector("#requestsTable tbody");
+      tbody.innerHTML = "";
+
+      data.forEach(row => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${row.song1 || ""}</td>
+          <td>${row.song2 || ""}</td>
+          <td>${row.name || ""}</td>
+          <td>${row.dedication || ""}</td>
+          <td><button onclick="deleteRequest('${row.song1}', '${row.song2}', '${row.name}', '${row.dedication}')">Mark as Played</button></td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function deleteRequest(song1, song2, name, dedication) {
+      fetch(`${API_URL}/search`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          song1: song1,
+          song2: song2,
+          name: name,
+          dedication: dedication
+        })
+      }).then(() => {
+        loadRequests();
+      });
+    }
+
+    loadRequests();
+    setInterval(loadRequests, 5000);
+  </script>
+</body>
+</html>
