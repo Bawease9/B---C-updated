@@ -61,91 +61,93 @@
     <tbody></tbody>
   </table>
 
-  <!-- Played section will be injected here -->
+  <h2>✅ Played Songs</h2>
+  <table id="playedTable">
+    <thead>
+      <tr>
+        <th>Song #1</th>
+        <th>Song #2</th>
+        <th>Name</th>
+        <th>Dedication</th>
+        <th>Timestamp</th>
+        <th>Action</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
 
-<script>
-  const sheetURL = 'https://docs.google.com/spreadsheets/d/1fXffDoYdRAhiyy6efKTi_m1hdR7Y64gPMdolnHA61QE/gviz/tq?tqx=out:json';
+  <script>
+    const sheetURL = 'https://docs.google.com/spreadsheets/d/1fXffDoYdRAhiyy6efKTi_m1hdR7Y64gPMdolnHA61QE/gviz/tq?tqx=out:json';
+    const requestsTable = document.querySelector("#requestsTable tbody");
+    const playedTable = document.querySelector("#playedTable tbody");
 
-  const requestsTable = document.querySelector("#requestsTable tbody");
+    function createTableRow(row) {
+      const tr = document.createElement("tr");
+      const cells = row.c.map(cell => (cell ? cell.v : ""));
 
-  // Create a dynamic "Played Songs" section
-  const playedSection = document.createElement("div");
-  playedSection.innerHTML = `
-    <h2>✅ Played Songs</h2>
-    <table style="margin:auto; border-collapse: collapse; width: 90%;" id="playedTable">
-      <thead>
-        <tr>
-          <th>Song #1</th>
-          <th>Song #2</th>
-          <th>Name</th>
-          <th>Dedication</th>
-          <th>Timestamp</th>
-          <th>Action</th>
-        </tr>
-      </thead>
-      <tbody></tbody>
-    </table>
-  `;
-  document.body.appendChild(playedSection);
-  const playedTable = playedSection.querySelector("tbody");
+      // Format timestamp
+      const timestampRaw = cells[0];
+      let timestamp = "";
+      if (timestampRaw && timestampRaw.startsWith("Date(")) {
+        const parts = timestampRaw.match(/\d+/g);
+        const date = new Date(parts[0], parts[1], parts[2], parts[3], parts[4], parts[5]);
 
-  function createTableRow(row) {
-    const tr = document.createElement("tr");
-    const cells = row.c.map(cell => (cell ? cell.v : ""));
+        const time = date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+        const dateStr = `${date.getMonth() + 1}/${date.getDate()}`;
+        timestamp = `${time} ${dateStr}`;
+      }
 
-    const song1 = cells[1];
-    const song2 = cells[2];
-    const name = cells[3];
-    const dedication = cells[4];
-    const timestamp = cells[0];
+      const song1 = cells[1];
+      const song2 = cells[2];
+      const name = cells[3];
+      const dedication = cells[4];
 
-    const columns = [song1, song2, name, dedication, timestamp];
-    columns.forEach(value => {
-      const td = document.createElement("td");
-      td.textContent = value;
-      tr.appendChild(td);
-    });
+      const columns = [song1, song2, name, dedication, timestamp];
+      columns.forEach(value => {
+        const td = document.createElement("td");
+        td.textContent = value;
+        tr.appendChild(td);
+      });
 
-    const actionTd = document.createElement("td");
-    const button = document.createElement("button");
-    button.textContent = "Mark as Played";
+      const actionTd = document.createElement("td");
+      const button = document.createElement("button");
+      button.textContent = "Mark as Played";
 
-    button.onclick = () => {
-      tr.remove();
-      button.textContent = "Return to List";
       button.onclick = () => {
         tr.remove();
-        button.textContent = "Mark as Played";
+        button.textContent = "Return to List";
         button.onclick = () => {
-          playedTable.removeChild(tr);
+          tr.remove();
+          button.textContent = "Mark as Played";
+          button.onclick = () => {
+            playedTable.removeChild(tr);
+            requestsTable.appendChild(tr);
+          };
           requestsTable.appendChild(tr);
         };
-        requestsTable.appendChild(tr);
+        playedTable.appendChild(tr);
       };
-      playedTable.appendChild(tr);
-    };
 
-    actionTd.appendChild(button);
-    tr.appendChild(actionTd);
+      actionTd.appendChild(button);
+      tr.appendChild(actionTd);
 
-    return tr;
-  }
+      return tr;
+    }
 
-  fetch(sheetURL)
-    .then(res => res.text())
-    .then(text => {
-      const json = JSON.parse(text.substring(47).slice(0, -2));
-      json.table.rows.forEach(row => {
-        const tr = createTableRow(row);
-        requestsTable.appendChild(tr);
+    fetch(sheetURL)
+      .then(res => res.text())
+      .then(text => {
+        const json = JSON.parse(text.substring(47).slice(0, -2));
+        json.table.rows.forEach(row => {
+          const tr = createTableRow(row);
+          requestsTable.appendChild(tr);
+        });
+      })
+      .catch(err => {
+        console.error("Error loading requests:", err);
+        alert("Could not load requests. Please check your spreadsheet permissions.");
       });
-    })
-    .catch(err => {
-      console.error("Error loading requests:", err);
-      alert("Could not load requests. Please check your spreadsheet permissions.");
-    });
-</script>
-
+  </script>
 </body>
 </html>
 
