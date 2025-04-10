@@ -16,8 +16,10 @@
       align-items: center;
       margin-bottom: 20px;
     }
-    .top-bar h1 {
-      margin: 0;
+    .left-controls {
+      display: flex;
+      align-items: center;
+      gap: 10px;
     }
     .status-info {
       text-align: right;
@@ -25,6 +27,10 @@
     .status-info span {
       font-weight: bold;
       font-size: 1.1em;
+    }
+    select {
+      padding: 6px 10px;
+      font-size: 1em;
     }
     table {
       margin: auto;
@@ -71,7 +77,13 @@
 <body>
 
   <div class="top-bar">
-    <h1>🎶 Admin - Song Requests 🎶</h1>
+    <div class="left-controls">
+      <label for="sortOrder">Sort by:</label>
+      <select id="sortOrder">
+        <option value="desc">Most Recent</option>
+        <option value="asc">Oldest</option>
+      </select>
+    </div>
     <div class="status-info">
       <div>Total Requests: <span id="requestCount">0</span></div>
       <button onclick="resetAll()">Reset All</button>
@@ -113,6 +125,7 @@
     const requestsTable = document.querySelector("#requestsTable tbody");
     const playedTable = document.querySelector("#playedTable tbody");
     const requestCount = document.getElementById("requestCount");
+    const sortOrderDropdown = document.getElementById("sortOrder");
 
     const playedTimestamps = new Set(); // Track played requests
 
@@ -190,9 +203,14 @@
           const json = JSON.parse(text.substring(47).slice(0, -2));
           const rows = json.table.rows
             .map(row => createTableRow(row))
-            .filter(r => !playedTimestamps.has(r.rawTimestamp)); // exclude played
-          
-          rows.sort((a, b) => b.timestampValue - a.timestampValue); // Newest first
+            .filter(r => !playedTimestamps.has(r.rawTimestamp));
+
+          const sortOrder = sortOrderDropdown.value;
+          rows.sort((a, b) => {
+            return sortOrder === "asc"
+              ? a.timestampValue - b.timestampValue
+              : b.timestampValue - a.timestampValue;
+          });
 
           requestsTable.innerHTML = "";
           rows.forEach(r => requestsTable.appendChild(r.rowElement));
@@ -213,6 +231,7 @@
       }
     }
 
+    sortOrderDropdown.addEventListener("change", loadData);
     loadData();
     setInterval(loadData, 15000); // Refresh every 15 seconds
   </script>
