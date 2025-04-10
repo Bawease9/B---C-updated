@@ -156,6 +156,13 @@
     }
   }
 
+  function stripHighlightClasses(row) {
+    const songCells = row.querySelectorAll("td.song-title");
+    songCells.forEach(cell => {
+      cell.className = "song-title";
+    });
+  }
+
   function createTableRow(cells, timestampRaw) {
     const tr = document.createElement("tr");
     const timestamp = formatTimestamp(timestampRaw);
@@ -180,6 +187,7 @@
     playedBtn.textContent = "Mark as Played";
     playedBtn.onclick = () => {
       tr.remove();
+      stripHighlightClasses(tr);
       addUndoRow(tr, playedTable);
       highlightDuplicates();
     };
@@ -188,6 +196,7 @@
     unknownBtn.textContent = "Don't Know";
     unknownBtn.onclick = () => {
       tr.remove();
+      stripHighlightClasses(tr);
       addUndoRow(tr, unknownTable);
       highlightDuplicates();
     };
@@ -210,7 +219,8 @@
       const playedBtn = document.createElement("button");
       playedBtn.textContent = "Mark as Played";
       playedBtn.onclick = () => {
-        row.remove();
+        tr.remove();
+        stripHighlightClasses(tr);
         addUndoRow(row, playedTable);
         highlightDuplicates();
       };
@@ -218,7 +228,8 @@
       const unknownBtn = document.createElement("button");
       unknownBtn.textContent = "Don't Know";
       unknownBtn.onclick = () => {
-        row.remove();
+        tr.remove();
+        stripHighlightClasses(tr);
         addUndoRow(row, unknownTable);
         highlightDuplicates();
       };
@@ -235,8 +246,7 @@
   function highlightDuplicates() {
     const allSongCells = requestsTable.querySelectorAll("td.song-title");
     allSongCells.forEach(td => {
-      td.classList.remove(...td.classList);
-      td.classList.add("song-title");
+      td.className = "song-title";
     });
 
     const songMap = {};
