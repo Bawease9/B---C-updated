@@ -20,8 +20,8 @@ exports.handler = async (event) => {
         },
       ],
       mode: 'payment',
-      success_url: 'https://your-site.netlify.app/thankyou.html',
-      cancel_url: 'https://your-site.netlify.app',
+      success_url: 'https://brady-and-caroline-requests.netlify.app/thankyou.html',
+      cancel_url: 'https://brady-and-caroline-requests.netlify.app/',
     });
 
     return {
