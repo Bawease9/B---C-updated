@@ -61,30 +61,17 @@
     <tbody></tbody>
   </table>
 
-  <h2>✅ Played Songs</h2>
-  <table id="playedTable">
-    <thead>
-      <tr>
-        <th>Song #1</th>
-        <th>Song #2</th>
-        <th>Name</th>
-        <th>Dedication</th>
-        <th>Timestamp</th>
-        <th>Action</th>
-      </tr>
-    </thead>
-    <tbody></tbody>
-  </table>
+  <!-- Played section will be injected here -->
 
 <script>
   const sheetURL = 'https://docs.google.com/spreadsheets/d/1fXffDoYdRAhiyy6efKTi_m1hdR7Y64gPMdolnHA61QE/gviz/tq?tqx=out:json';
 
   const requestsTable = document.querySelector("#requestsTable tbody");
 
-  // Create a separate "Played Songs" section
+  // Create a dynamic "Played Songs" section
   const playedSection = document.createElement("div");
   playedSection.innerHTML = `
-    <h2 style="text-align:center; margin-top:40px;">✅ Played Songs</h2>
+    <h2>✅ Played Songs</h2>
     <table style="margin:auto; border-collapse: collapse; width: 90%;" id="playedTable">
       <thead>
         <tr>
@@ -161,3 +148,4 @@
 
 </body>
 </html>
+
