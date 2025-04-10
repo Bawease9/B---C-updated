@@ -10,8 +10,21 @@
       background: #f9f9f9;
       padding: 20px;
     }
-    h1 {
-      text-align: center;
+    .top-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+    .top-bar h1 {
+      margin: 0;
+    }
+    .status-info {
+      text-align: right;
+    }
+    .status-info span {
+      font-weight: bold;
+      font-size: 1.1em;
     }
     table {
       margin: auto;
@@ -32,6 +45,12 @@
       font-weight: bold;
       font-size: 1.2em;
     }
+    tr:nth-child(even) {
+      background-color: #f2f2f2;
+    }
+    tr:nth-child(odd) {
+      background-color: white;
+    }
     button {
       padding: 6px 12px;
       border: none;
@@ -48,13 +67,21 @@
       margin-top: 60px;
     }
     .highlight {
-      background-color: #ffcccc !important; /* light red */
+      background-color: #ffff99 !important; /* yellow highlight */
       transition: background-color 0.5s ease;
     }
   </style>
 </head>
 <body>
-  <h1>🎶 Admin - Song Requests 🎶</h1>
+
+  <div class="top-bar">
+    <h1>🎶 Admin - Song Requests 🎶</h1>
+    <div class="status-info">
+      <div>Total Requests: <span id="requestCount">0</span></div>
+      <button onclick="resetAll()">Reset All</button>
+    </div>
+  </div>
+
   <table id="requestsTable">
     <thead>
       <tr>
@@ -84,135 +111,111 @@
     <tbody></tbody>
   </table>
 
-<script>
-  const sheetURL = 'https://docs.google.com/spreadsheets/d/1fXffDoYdRAhiyy6efKTi_m1hdR7Y64gPMdolnHA61QE/gviz/tq?tqx=out:json';
-  const requestsTable = document.querySelector("#requestsTable tbody");
-  const playedTable = document.querySelector("#playedTable tbody");
-  const requestIds = new Set(); // Track seen requests
+  <script>
+    const sheetURL = 'https://docs.google.com/spreadsheets/d/1fXffDoYdRAhiyy6efKTi_m1hdR7Y64gPMdolnHA61QE/gviz/tq?tqx=out:json';
 
-  function formatTimestamp(raw) {
-    if (raw && raw.startsWith("Date(")) {
-      const parts = raw.match(/\d+/g);
-      const date = new Date(parts[0], parts[1], parts[2], parts[3], parts[4], parts[5]);
-      const time = date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
-      const dateStr = `${date.getMonth() + 1}/${date.getDate()}`;
-      return {
-        formatted: `${time} ${dateStr}`,
-        dateObj: date,
-        raw
-      };
-    }
-    return { formatted: "", dateObj: new Date(0), raw };
-  }
+    const requestsTable = document.querySelector("#requestsTable tbody");
+    const playedTable = document.querySelector("#playedTable tbody");
+    const requestCount = document.getElementById("requestCount");
 
-  function createTableRow(row, highlight = false) {
-    const tr = document.createElement("tr");
-    const cells = row.c.map(cell => (cell ? cell.v : ""));
+    function formatTimestamp(raw) {
+      try {
+        const match = raw.match(/Date\(([^)]+)\)/);
+        if (!match) return raw;
+        const parts = match[1].split(',').map(Number);
+        const date = new Date(parts[0], parts[1], parts[2], parts[3], parts[4], parts[5]);
 
-    const timestampData = formatTimestamp(cells[0]);
-    const id = timestampData.raw;
-
-    if (requestIds.has(id)) return null;
-    requestIds.add(id);
-
-    const song1 = cells[1];
-    const song2 = cells[2];
-    const name = cells[3];
-    const dedication = cells[4];
-
-   const columns = [song1, song2, name, dedication, timestampData.formatted];
-columns.forEach((value, index) => {
-  const td = document.createElement("td");
-  td.textContent = value;
-
-  // Apply special styling to Song #1 and Song #2
-  if (index === 0 || index === 1) {
-    td.style.fontWeight = "bold";
-    td.style.fontSize = "1.1em";
-  }
-
-  tr.appendChild(td);
-});
-
-
-    const actionTd = document.createElement("td");
-    const button = document.createElement("button");
-    button.textContent = "Mark as Played";
-
-    button.onclick = () => {
-      tr.remove();
-      button.textContent = "Return to List";
-      button.onclick = () => {
-        tr.remove();
-        button.textContent = "Mark as Played";
-        button.onclick = () => {
-          playedTable.removeChild(tr);
-          insertSorted(requestsTable, tr, timestampData.dateObj);
-        };
-        insertSorted(requestsTable, tr, timestampData.dateObj);
-      };
-      playedTable.appendChild(tr);
-    };
-
-    actionTd.appendChild(button);
-    tr.appendChild(actionTd);
-
-    tr.dataset.timestamp = timestampData.dateObj.getTime();
-
-    if (highlight) {
-      tr.style.backgroundColor = "#fff3cd"; // light yellow
-      setTimeout(() => {
-        tr.style.transition = "background-color 1s ease";
-        tr.style.backgroundColor = "";
-      }, 2000);
-    }
-
-    return tr;
-  }
-
-  function insertSorted(table, row, dateObj) {
-    const rows = Array.from(table.querySelectorAll("tr"));
-    const timestamp = dateObj.getTime();
-
-    let inserted = false;
-    for (let i = 0; i < rows.length; i++) {
-      const rowTime = parseInt(rows[i].dataset.timestamp || "0");
-      if (timestamp > rowTime) {
-        table.insertBefore(row, rows[i]);
-        inserted = true;
-        break;
+        const options = { hour: 'numeric', minute: 'numeric', hour12: true };
+        const time = date.toLocaleTimeString(undefined, options);
+        const dateString = `${date.getMonth() + 1}/${date.getDate()}`;
+        return `${time} ${dateString}`;
+      } catch {
+        return raw;
       }
     }
 
-    if (!inserted) table.appendChild(row);
-  }
+    function createTableRow(row, highlight = false) {
+      const tr = document.createElement("tr");
+      const cells = row.c.map(cell => (cell ? cell.v : ""));
 
-  function loadRequests() {
-    fetch(sheetURL)
-      .then(res => res.text())
-      .then(text => {
-        const json = JSON.parse(text.substring(47).slice(0, -2));
-        json.table.rows.forEach(row => {
-          const timestampCell = row.c[0];
-          if (!timestampCell || !timestampCell.v) return;
+      const song1 = cells[1];
+      const song2 = cells[2];
+      const name = cells[3];
+      const dedication = cells[4];
+      const timestampRaw = cells[0];
+      const timestamp = formatTimestamp(timestampRaw);
 
-          const timestampData = formatTimestamp(timestampCell.v);
-          if (requestIds.has(timestampData.raw)) return;
-
-          const tr = createTableRow(row, true);
-          if (tr) insertSorted(requestsTable, tr, timestampData.dateObj);
-        });
-      })
-      .catch(err => {
-        console.error("Error loading requests:", err);
+      const cellValues = [song1, song2, name, dedication, timestamp];
+      cellValues.forEach((val, idx) => {
+        const td = document.createElement("td");
+        td.textContent = val;
+        if (idx === 0 || idx === 1) td.classList.add("song-cell");
+        tr.appendChild(td);
       });
-  }
 
-  // Initial load
-  loadRequests();
-  // Refresh every 30 seconds
-  setInterval(loadRequests, 30000);
-</script>
+      const actionTd = document.createElement("td");
+      const button = document.createElement("button");
+      button.textContent = "Mark as Played";
 
+      button.onclick = () => {
+        tr.remove();
+        button.textContent = "Return to List";
+        button.onclick = () => {
+          tr.remove();
+          button.textContent = "Mark as Played";
+          button.onclick = () => {
+            playedTable.removeChild(tr);
+            requestsTable.insertBefore(tr, requestsTable.firstChild);
+          };
+          requestsTable.insertBefore(tr, requestsTable.firstChild);
+        };
+        playedTable.appendChild(tr);
+      };
+
+      actionTd.appendChild(button);
+      tr.appendChild(actionTd);
+
+      if (highlight) {
+        tr.classList.add("highlight");
+        setTimeout(() => {
+          tr.classList.remove("highlight");
+        }, 8000); // 8 seconds
+      }
+
+      return {
+        rowElement: tr,
+        timestampValue: new Date(timestampRaw.match(/\d+/g).join(',')).getTime()
+      };
+    }
+
+    function loadData() {
+      fetch(sheetURL)
+        .then(res => res.text())
+        .then(text => {
+          const json = JSON.parse(text.substring(47).slice(0, -2));
+          const rows = json.table.rows.map(row => createTableRow(row, true));
+          rows.sort((a, b) => b.timestampValue - a.timestampValue); // Newest first
+
+          requestsTable.innerHTML = "";
+          rows.forEach(r => requestsTable.appendChild(r.rowElement));
+          requestCount.textContent = rows.length;
+        })
+        .catch(err => {
+          console.error("Error loading requests:", err);
+          alert("Could not load requests. Please check your spreadsheet permissions.");
+        });
+    }
+
+    function resetAll() {
+      if (confirm("Are you sure you want to clear both lists?")) {
+        requestsTable.innerHTML = "";
+        playedTable.innerHTML = "";
+        requestCount.textContent = "0";
+      }
+    }
+
+    loadData();
+    setInterval(loadData, 15000); // Refresh every 15 seconds
+  </script>
 </body>
 </html>
