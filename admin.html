@@ -112,12 +112,20 @@
     const name = cells[3];
     const dedication = cells[4];
 
-    const columns = [song1, song2, name, dedication, timestampData.formatted];
-    columns.forEach(value => {
-      const td = document.createElement("td");
-      td.textContent = value;
-      tr.appendChild(td);
-    });
+   const columns = [song1, song2, name, dedication, timestampData.formatted];
+columns.forEach((value, index) => {
+  const td = document.createElement("td");
+  td.textContent = value;
+
+  // Apply special styling to Song #1 and Song #2
+  if (index === 0 || index === 1) {
+    td.style.fontWeight = "bold";
+    td.style.fontSize = "1.1em";
+  }
+
+  tr.appendChild(td);
+});
+
 
     const actionTd = document.createElement("td");
     const button = document.createElement("button");
