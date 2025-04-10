@@ -64,13 +64,6 @@
       text-align: center;
       margin-top: 60px;
     }
-    .section-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 0 5%;
-      margin-top: 60px;
-    }
   </style>
 </head>
 <body>
@@ -94,10 +87,7 @@
     <tbody></tbody>
   </table>
 
-  <div class="section-header">
-    <h2 class="section-title">✅ Played Songs</h2>
-    <button onclick="undoLast('played')">Undo</button>
-  </div>
+  <h2 class="section-title">✅ Played Songs</h2>
   <table id="playedTable">
     <thead>
       <tr>
@@ -112,10 +102,7 @@
     <tbody></tbody>
   </table>
 
-  <div class="section-header">
-    <h2 class="section-title">🤷‍♂️ Songs We Don't Know</h2>
-    <button onclick="undoLast('unknown')">Undo</button>
-  </div>
+  <h2 class="section-title">🤷‍♂️ Songs We Don't Know</h2>
   <table id="unknownTable">
     <thead>
       <tr>
@@ -139,17 +126,6 @@
   const totalCount = document.getElementById("totalCount");
 
   let knownTimestamps = new Set();
-
-  // Create undo buttons and hide them by default
-  const playedUndoBtn = document.querySelector('button[onclick="undoLast(\'played\')"]');
-  const unknownUndoBtn = document.querySelector('button[onclick="undoLast(\'unknown\')"]');
-  playedUndoBtn.style.display = 'none';
-  unknownUndoBtn.style.display = 'none';
-
-  function updateUndoButtons() {
-    playedUndoBtn.style.display = playedTable.children.length > 0 ? 'inline-block' : 'none';
-    unknownUndoBtn.style.display = unknownTable.children.length > 0 ? 'inline-block' : 'none';
-  }
 
   function formatTimestamp(raw) {
     try {
@@ -192,16 +168,18 @@
     playedBtn.textContent = "Mark as Played";
     playedBtn.onclick = () => {
       tr.remove();
+      addUndoButton(tr, requestsTable);
       playedTable.appendChild(tr);
-      updateUndoButtons();
+      updateTotal();
     };
 
     const unknownBtn = document.createElement("button");
     unknownBtn.textContent = "Don't Know";
     unknownBtn.onclick = () => {
       tr.remove();
+      addUndoButton(tr, requestsTable);
       unknownTable.appendChild(tr);
-      updateUndoButtons();
+      updateTotal();
     };
 
     actionTd.appendChild(playedBtn);
@@ -209,6 +187,52 @@
     tr.appendChild(actionTd);
 
     return tr;
+  }
+
+  function addUndoButton(tr, destinationTable) {
+    const actionCell = tr.querySelector("td:last-child");
+    actionCell.innerHTML = ""; // Clear existing buttons
+
+    const undoBtn = document.createElement("button");
+    undoBtn.textContent = "Undo";
+    undoBtn.onclick = () => {
+      tr.remove();
+      restoreActionButtons(tr);
+      destinationTable.insertBefore(tr, destinationTable.firstChild);
+      updateTotal();
+    };
+
+    actionCell.appendChild(undoBtn);
+  }
+
+  function restoreActionButtons(tr) {
+    const actionCell = tr.querySelector("td:last-child");
+    actionCell.innerHTML = "";
+
+    const playedBtn = document.createElement("button");
+    playedBtn.textContent = "Mark as Played";
+    playedBtn.onclick = () => {
+      tr.remove();
+      addUndoButton(tr, requestsTable);
+      playedTable.appendChild(tr);
+      updateTotal();
+    };
+
+    const unknownBtn = document.createElement("button");
+    unknownBtn.textContent = "Don't Know";
+    unknownBtn.onclick = () => {
+      tr.remove();
+      addUndoButton(tr, requestsTable);
+      unknownTable.appendChild(tr);
+      updateTotal();
+    };
+
+    actionCell.appendChild(playedBtn);
+    actionCell.appendChild(unknownBtn);
+  }
+
+  function updateTotal() {
+    totalCount.textContent = `Total Requests: ${requestsTable.children.length}`;
   }
 
   function fetchData() {
@@ -226,7 +250,7 @@
           }
         });
 
-        totalCount.textContent = `Total Requests: ${requestsTable.children.length}`;
+        updateTotal();
       })
       .catch(err => {
         console.error("Error loading requests:", err);
@@ -240,28 +264,13 @@
       playedTable.innerHTML = "";
       unknownTable.innerHTML = "";
       knownTimestamps.clear();
-      updateUndoButtons();
       fetchData();
     }
-  }
-
-  function undoLast(section) {
-    let fromTable;
-    if (section === "played") fromTable = playedTable;
-    if (section === "unknown") fromTable = unknownTable;
-
-    const last = fromTable.lastElementChild;
-    if (last) {
-      fromTable.removeChild(last);
-      requestsTable.insertBefore(last, requestsTable.firstChild);
-    }
-    updateUndoButtons();
   }
 
   fetchData();
   setInterval(fetchData, 10000); // refresh every 10 seconds
 </script>
-
 
 </body>
 </html>
