@@ -69,17 +69,51 @@
     <img src="logo.png" alt="Brady and Caroline Logo" />
     <h1><span class="emoji">🎶</span> Make A Request <span class="emoji">🎶</span></h1>
 
-  <form action="thankyou.html" method="GET">
-  <input name="song1" type="text" placeholder="Song Choice #1" required />
-  <input name="song2" type="text" placeholder="Song Choice #2" />
-  <input name="name" type="text" placeholder="Your Name" />
-  <input name="dedication" type="text" placeholder="Special Dedication" />
-  <button class="button" type="submit">Submit Request</button>
-</form>
-
-
+    <form id="requestForm">
+      <input name="song1" type="text" placeholder="Song Choice #1" required />
+      <input name="song2" type="text" placeholder="Song Choice #2" />
+      <input name="name" type="text" placeholder="Your Name" />
+      <input name="dedication" type="text" placeholder="Special Dedication" />
+      <button class="button" type="submit">Submit Request</button>
+    </form>
 
     <a class="venmo-button" href="https://venmo.com/Brady-Wease" target="_blank">💸 Tip via Venmo</a>
   </div>
+
+  <script>
+    const form = document.getElementById('requestForm');
+
+    form.addEventListener('submit', function(e) {
+      e.preventDefault();
+
+      const formData = new FormData(form);
+      const data = {
+        song1: formData.get('song1'),
+        song2: formData.get('song2'),
+        name: formData.get('name'),
+        dedication: formData.get('dedication')
+      };
+
+      fetch("https://script.google.com/macros/s/AKfycbwWd6jK4p7V23kJuTwluRhc1VFnpCrp0SZFnbQpmTxV-HxcPYNWaU3piEn0Ko5D3ODg/exec", {
+        method: 'POST',
+        body: JSON.stringify(data),
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      })
+      .then(response => {
+        if (response.ok) {
+          window.location.href = 'thankyou.html';
+        } else {
+          alert('Something went wrong. Please try again.');
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        alert('Something went wrong. Please try again.');
+      });
+    });
+  </script>
 </body>
 </html>
+
