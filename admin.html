@@ -15,13 +15,8 @@
     }
     .top-bar {
       display: flex;
-      justify-content: space-between;
+      justify-content: flex-end;
       margin-bottom: 20px;
-    }
-    .filter-group {
-      display: flex;
-      align-items: center;
-      gap: 10px;
     }
     table {
       margin: auto;
@@ -57,23 +52,11 @@
     button:hover {
       background-color: #0056b3;
     }
-    .highlight {
-      background-color: yellow !important;
-      transition: background-color 1s ease;
-    }
   </style>
 </head>
 <body>
   <h1>🎶 Admin - Song Requests 🎶</h1>
   <div class="top-bar">
-    <div class="filter-group">
-      <label for="sortSelect">Sort by:</label>
-      <select id="sortSelect">
-        <option value="recent">Most Recent</option>
-        <option value="oldest">Oldest</option>
-        <option value="dedication">Dedication</option>
-      </select>
-    </div>
     <div id="totalRequests">Total Requests: 0</div>
   </div>
 
@@ -127,7 +110,6 @@
   const playedTable = document.querySelector("#playedTable tbody");
   const dontKnowTable = document.querySelector("#dontKnowTable tbody");
   const totalRequestsLabel = document.getElementById("totalRequests");
-  const sortSelect = document.getElementById("sortSelect");
 
   let requestRows = [];
 
@@ -139,12 +121,8 @@
     return `${time} ${formattedDate}`;
   }
 
-  function createTableRow(rowData, isNew = false) {
+  function createTableRow(rowData) {
     const tr = document.createElement("tr");
-    if (isNew) {
-      tr.classList.add("highlight");
-      setTimeout(() => tr.classList.remove("highlight"), 4000);
-    }
 
     const cells = rowData.c.map(cell => cell ? cell.v : "");
     const [timestampRaw, song1, song2, name, dedication] = [
@@ -179,24 +157,13 @@
     actionTd.appendChild(dontKnowButton);
     tr.appendChild(actionTd);
 
-    return { tr, timestamp: new Date(timestampRaw), dedication };
+    return { tr, timestamp: new Date(timestampRaw) };
   }
 
   function renderRequests() {
     requestsTable.innerHTML = "";
-    let rows = [...requestRows];
-
-    const sortValue = sortSelect.value;
-    if (sortValue === "recent") {
-      rows.sort((a, b) => b.timestamp - a.timestamp);
-    } else if (sortValue === "oldest") {
-      rows.sort((a, b) => a.timestamp - b.timestamp);
-    } else if (sortValue === "dedication") {
-      rows = rows.filter(row => row.dedication && row.dedication.trim() !== "");
-    }
-
-    rows.forEach(({ tr }) => requestsTable.appendChild(tr));
-    totalRequestsLabel.textContent = `Total Requests: ${rows.length}`;
+    requestRows.forEach(({ tr }) => requestsTable.appendChild(tr));
+    totalRequestsLabel.textContent = `Total Requests: ${requestRows.length}`;
   }
 
   function fetchData() {
@@ -204,7 +171,7 @@
       .then(res => res.text())
       .then(text => {
         const json = JSON.parse(text.substring(47).slice(0, -2));
-        requestRows = json.table.rows.map(row => createTableRow(row, true));
+        requestRows = json.table.rows.map(row => createTableRow(row));
         renderRequests();
       })
       .catch(err => {
@@ -213,7 +180,6 @@
       });
   }
 
-  sortSelect.addEventListener("change", renderRequests);
   fetchData();
   setInterval(fetchData, 15000);
 </script>
