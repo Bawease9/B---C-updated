@@ -69,83 +69,91 @@
     <img src="logo.png" alt="Brady and Caroline Logo" />
     <h1><span class="emoji">🎶</span> Make A Request <span class="emoji">🎶</span></h1>
 
-    <form id="request-form">
-  <input type="text" id="song" name="song" placeholder="Song / Artist" required>
-  <input type="text" id="name" name="name" placeholder="Your Name">
-  <input type="text" id="dedication" name="dedication" placeholder="Dedication / Special Occasion">
-  <input type="number" id="tip" name="tip" placeholder="Tip Amount (USD)" min="0" step="0.01">
-  <button type="submit" class="button">Submit Request</button>
-</form>
+    <div id="form-container">
+      <form id="request-form">
+        <input type="text" id="song" name="song" placeholder="Song / Artist" required>
+        <input type="text" id="name" name="name" placeholder="Your Name">
+        <input type="text" id="dedication" name="dedication" placeholder="Dedication / Special Occasion">
+        <input type="number" id="tip" name="tip" placeholder="Tip Amount (USD)" min="0" step="0.01">
+        <button type="submit" class="button">Submit Request</button>
+      </form>
+    </div>
 
-  <div id="spinner" style="display:none; margin-top: 20px;">
-  <svg width="50" height="50" viewBox="0 0 50 50">
-    <circle cx="25" cy="25" r="20" fill="none" stroke="#111" stroke-width="4" stroke-linecap="round" stroke-dasharray="100" stroke-dashoffset="100">
-      <animate attributeName="stroke-dashoffset" values="100;0" dur="1s" repeatCount="indefinite" />
-    </circle>
-  </svg>
-  <p>Submitting your request...</p>
-</div>
+    <div id="spinner" style="display:none; margin-top: 20px;">
+      <svg width="50" height="50" viewBox="0 0 50 50">
+        <circle cx="25" cy="25" r="20" fill="none" stroke="#111" stroke-width="4" stroke-linecap="round" stroke-dasharray="100" stroke-dashoffset="100">
+          <animate attributeName="stroke-dashoffset" values="100;0" dur="1s" repeatCount="indefinite" />
+        </circle>
+      </svg>
+      <p>Submitting your request...</p>
+    </div>
+  </div>
 
+  <script>
+    document.getElementById("request-form").addEventListener("submit", async function (e) {
+      e.preventDefault();
 
- <script>
-  document.getElementById("request-form").addEventListener("submit", async function (e) {
-    e.preventDefault();
+      const song = document.getElementById("song").value.trim();
+      const name = document.getElementById("name").value.trim();
+      const dedication = document.getElementById("dedication").value.trim();
+      const tip = document.getElementById("tip").value.trim();
+      const tipAmount = parseFloat(tip);
 
-    const song = document.getElementById("song").value.trim();
-    const name = document.getElementById("name").value.trim();
-    const dedication = document.getElementById("dedication").value.trim();
-    const tip = document.getElementById("tip").value.trim();
+      // Show spinner, hide form
+      document.getElementById("form-container").style.display = "none";
+      document.getElementById("spinner").style.display = "block";
 
-    const tipAmount = parseFloat(tip);
+      if (!tip || isNaN(tipAmount) || tipAmount <= 0) {
+        // No tip — send directly to Google Sheets
+        try {
+          await fetch("https://script.google.com/macros/s/AKfycbwWd6jK4p7V23kJuTwluRhc1VFnpCrp0SZFnbQpmTxV-HxcPYNWaU3piEn0Ko5D3ODg/exec", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              song,
+              name,
+              dedication,
+              tip: 0,
+            }),
+          });
 
-    if (!tip || isNaN(tipAmount) || tipAmount <= 0) {
-      // No tip — send directly to Google Sheets
-      try {
-        await fetch("https://script.google.com/macros/s/AKfycbwWd6jK4p7V23kJuTwluRhc1VFnpCrp0SZFnbQpmTxV-HxcPYNWaU3piEn0Ko5D3ODg/exec", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            song,
-            name,
-            dedication,
-            tip: 0,
-          }),
-        });
-
-        window.location.href = "/thankyou.html";
-      } catch (err) {
-        console.error("Error submitting request:", err);
-        alert("There was an error submitting your request. Please try again.");
-      }
-    } else {
-      // Tip exists — send to Stripe Checkout
-      try {
-        const res = await fetch('https://square-frost-7b47.bradyandcaroline.workers.dev/create-checkout', {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            song,
-            name,
-            dedication,
-            tip: tipAmount,
-          }),
-        });
-
-        const data = await res.json();
-        if (data.url) {
-          window.location.href = data.url;
-        } else {
-          throw new Error("No Stripe URL returned");
+          window.location.href = "/thankyou.html";
+        } catch (err) {
+          console.error("Error submitting request:", err);
+          alert("There was an error submitting your request. Please try again.");
+          document.getElementById("form-container").style.display = "block";
+          document.getElementById("spinner").style.display = "none";
         }
-      } catch (err) {
-        console.error("Error submitting tip request:", err);
-        alert("There was an error with the tip submission. Please try again.");
+      } else {
+        // Tip exists — send to Stripe Checkout
+        try {
+          const res = await fetch('https://square-frost-7b47.bradyandcaroline.workers.dev/create-checkout', {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              song,
+              name,
+              dedication,
+              tip: tipAmount,
+            }),
+          });
+
+          const data = await res.json();
+          if (data.url) {
+            window.location.href = data.url;
+          } else {
+            throw new Error("No Stripe URL returned");
+          }
+        } catch (err) {
+          console.error("Error submitting tip request:", err);
+          alert("There was an error with the tip submission. Please try again.");
+          document.getElementById("form-container").style.display = "block";
+          document.getElementById("spinner").style.display = "none";
+        }
       }
-    }
-  });
-</script>
-
-
+    });
+  </script>
 </body>
 </html>
+
 
