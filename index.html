@@ -77,7 +77,15 @@
   <button type="submit" class="button">Submit Request</button>
 </form>
 
-  </div>
+  <div id="spinner" style="display:none; margin-top: 20px;">
+  <svg width="50" height="50" viewBox="0 0 50 50">
+    <circle cx="25" cy="25" r="20" fill="none" stroke="#111" stroke-width="4" stroke-linecap="round" stroke-dasharray="100" stroke-dashoffset="100">
+      <animate attributeName="stroke-dashoffset" values="100;0" dur="1s" repeatCount="indefinite" />
+    </circle>
+  </svg>
+  <p>Submitting your request...</p>
+</div>
+
 
  <script>
   document.getElementById("request-form").addEventListener("submit", async function (e) {
