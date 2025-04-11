@@ -62,7 +62,6 @@
       <input type="text" id="song" name="song" placeholder="Song / Artist" required>
       <input type="text" id="name" name="name" placeholder="Your Name">
       <input type="text" id="dedication" name="dedication" placeholder="Dedication / Special Occasion">
-      <input type="text" id="tip" name="tip" placeholder="Tip Amount (USD)">
       <button type="submit" class="button">Submit Request</button>
     </form>
 
@@ -76,69 +75,38 @@
     </div>
 
     <script>
-  const tipInput = document.getElementById("tip");
-  let lastTipDigits = "";
+      document.getElementById("request-form").addEventListener("submit", async function (e) {
+        e.preventDefault();
+        document.getElementById("spinner").style.display = "block";
 
-  tipInput.addEventListener("input", (e) => {
-    const raw = e.target.value.replace(/\D/g, "");
-    lastTipDigits = raw;
-    const cents = parseInt(lastTipDigits || "0", 10);
-    tipInput.value = (cents / 100).toLocaleString("en-US", {
-      style: "currency",
-      currency: "USD",
-    });
-  });
+        const song = document.getElementById("song").value.trim();
+        const name = document.getElementById("name").value.trim();
+        const dedication = document.getElementById("dedication").value.trim();
 
-  tipInput.addEventListener("keydown", (e) => {
-    if (e.key === "Backspace") {
-      e.preventDefault();
-      lastTipDigits = lastTipDigits.slice(0, -1);
-      const cents = parseInt(lastTipDigits || "0", 10);
-      tipInput.value = (cents / 100).toLocaleString("en-US", {
-        style: "currency",
-        currency: "USD",
+        try {
+          const res = await fetch('https://requests.bradyandcaroline.workers.dev/', {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              song,
+              name,
+              dedication
+            }),
+          });
+
+          const data = await res.json();
+          if (res.ok && data.success) {
+            window.location.href = "/thankyou.html";
+          } else {
+            throw new Error(data.message || "Unknown error");
+          }
+        } catch (err) {
+          console.error("Error submitting request:", err);
+          alert("There was an error submitting your request. Please try again.");
+          document.getElementById("spinner").style.display = "none";
+        }
       });
-    }
-  });
-
-  document.getElementById("request-form").addEventListener("submit", async function (e) {
-    e.preventDefault();
-
-    document.getElementById("spinner").style.display = "block";
-
-    const song = document.getElementById("song").value.trim();
-    const name = document.getElementById("name").value.trim();
-    const dedication = document.getElementById("dedication").value.trim();
-    const tipFormatted = document.getElementById("tip").value;
-    const tipAmount = parseFloat(tipFormatted.replace(/[^0-9.]/g, "") || "0");
-
-    try {
-      const res = await fetch('https://requests.bradyandcaroline.workers.dev/', {
-
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          song,
-          name,
-          dedication,
-          tip: tipAmount,
-        }),
-      });
-
-      const data = await res.json();
-      if (res.ok && data.success) {
-        window.location.href = "/thankyou.html";
-      } else {
-        throw new Error(data.message || "Unknown error");
-      }
-    } catch (err) {
-      console.error("Error submitting request:", err);
-      alert("There was an error submitting your request. Please try again.");
-      document.getElementById("spinner").style.display = "none";
-    }
-  });
-</script>
-
+    </script>
   </div>
 </body>
 </html>
