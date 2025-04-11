@@ -74,46 +74,56 @@
       <input name="song2" type="text" placeholder="Song Choice #2" />
       <input name="name" type="text" placeholder="Your Name" />
       <input name="dedication" type="text" placeholder="Special Dedication" />
-      <label for="tip">Optional Tip ($):</label>
-<input type="number" step="0.01" min="0" name="tip" id="tip" />
+     <!-- Optional tip -->
+  <input type="number" id="tip-amount" placeholder="Optional Tip ($)" step="0.01" min="0" />
 
-<button type="submit">Submit Request</button>
-
-    </form>
+  <button type="submit">Send Request</button>
+</form>
 
     <a class="venmo-button" href="https://venmo.com/Brady-Wease" target="_blank">💸 Tip via Venmo</a>
   </div>
 
-  <script>
-    document.getElementById("requestForm").addEventListener("submit", async function(event) {
-      event.preventDefault();
+ <script>
+  document.getElementById('request-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
 
-      const form = event.target;
-      const data = {
-        song1: form.song1.value,
-        song2: form.song2.value,
-        name: form.name.value,
-        dedication: form.dedication.value
-      };
+    const name = e.target.name.value;
+    const song = e.target.song.value;
+    const tipInput = document.getElementById('tip-amount').value.trim();
+    const tipAmount = parseFloat(tipInput || "0");
 
-      try {
-        const response = await fetch("https://script.google.com/macros/s/AKfycbwWd6jK4p7V23kJuTwluRhc1VFnpCrp0SZFnbQpmTxV-HxcPYNWaU3piEn0Ko5D3ODg/exec", {
-          method: "POST",
-          mode: "no-cors",
-          headers: {
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify(data)
-        });
+    if (tipAmount <= 0) {
+      // No tip — just submit to Google Sheets
+      await fetch('https://script.google.com/macros/s/AKfycbwWd6jK4p7V23kJuTwluRhc1VFnpCrp0SZFnbQpmTxV-HxcPYNWaU3piEn0Ko5D3ODg/exec', {
+        method: 'POST',
+        body: new FormData(e.target)
+      });
+      window.location.href = 'thankyou.html';
+    } else {
+      // Convert dollars to cents for Stripe
+      const amountInCents = Math.round(tipAmount * 100);
 
-        // Since mode: "no-cors" gives an opaque response, we just assume success
-        window.location.href = "thankyou.html";
-      } catch (error) {
-        console.error("Submission failed:", error);
-        alert("Something went wrong. Please try again.");
+      // Send to your Cloudflare Worker for Stripe Checkout
+      const response = await fetch('https://square-frost-7b47.bradyandcaroline.workers.dev/create-checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name,
+          song,
+          amount: amountInCents
+        })
+      });
+
+      if (response.redirected) {
+        window.location.href = response.url;
+      } else {
+        const text = await response.text();
+        alert('Something went wrong: ' + text);
       }
-    });
-  </script>
+    }
+  });
+</script>
+
 </body>
 </html>
 
