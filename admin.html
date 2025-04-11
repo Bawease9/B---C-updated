@@ -87,13 +87,12 @@
   <table id="requestsTable">
     <thead>
       <tr>
-       <th>Song/Artist</th>
+        <th>Song/Artist</th>
         <th>Your Name</th>
         <th>Dedication/Special Request</th>
         <th>Timestamp</th>
         <th>Tip Amount</th>
         <th>Action</th>
-
       </tr>
     </thead>
     <tbody></tbody>
@@ -109,7 +108,6 @@
         <th>Timestamp</th>
         <th>Tip Amount</th>
         <th>Action</th>
-
       </tr>
     </thead>
     <tbody></tbody>
@@ -119,13 +117,12 @@
   <table id="unknownTable">
     <thead>
       <tr>
-       <th>Song/Artist</th>
+        <th>Song/Artist</th>
         <th>Your Name</th>
         <th>Dedication/Special Request</th>
         <th>Timestamp</th>
         <th>Tip Amount</th>
         <th>Action</th>
-
       </tr>
     </thead>
     <tbody></tbody>
@@ -174,14 +171,13 @@
     if (knownTimestamps.has(key)) return null;
     knownTimestamps.add(key);
 
-    const [_, song1, song2, name, dedication, tipAmount] = cells.map(cell => (cell ? cell.v : ""));
-const tdData = [song1, song2, name, dedication, timestamp, tipAmount || ""];
-
+    const [_, song, name, dedication, tipAmount] = cells.map(cell => (cell ? cell.v : ""));
+    const tdData = [song, name, dedication, timestamp, tipAmount || ""];
 
     tdData.forEach((val, idx) => {
       const td = document.createElement("td");
       td.textContent = val;
-      if (idx === 0 || idx === 1) td.classList.add("song-title");
+      if (idx === 0) td.classList.add("song-title");
       tr.appendChild(td);
     });
 
@@ -223,8 +219,8 @@ const tdData = [song1, song2, name, dedication, timestamp, tipAmount || ""];
       const playedBtn = document.createElement("button");
       playedBtn.textContent = "Mark as Played";
       playedBtn.onclick = () => {
-        tr.remove();
-        stripHighlightClasses(tr);
+        row.remove();
+        stripHighlightClasses(row);
         addUndoRow(row, playedTable);
         highlightDuplicates();
       };
@@ -232,8 +228,8 @@ const tdData = [song1, song2, name, dedication, timestamp, tipAmount || ""];
       const unknownBtn = document.createElement("button");
       unknownBtn.textContent = "Don't Know";
       unknownBtn.onclick = () => {
-        tr.remove();
-        stripHighlightClasses(tr);
+        row.remove();
+        stripHighlightClasses(row);
         addUndoRow(row, unknownTable);
         highlightDuplicates();
       };
@@ -257,20 +253,11 @@ const tdData = [song1, song2, name, dedication, timestamp, tipAmount || ""];
     const rows = Array.from(requestsTable.querySelectorAll("tr"));
 
     rows.forEach(tr => {
-      const song1Cell = tr.children[0];
-      const song2Cell = tr.children[1];
-
-      const song1 = song1Cell?.textContent.trim().toLowerCase();
-      const song2 = song2Cell?.textContent.trim().toLowerCase();
-
-      if (song1) {
-        if (!songMap[song1]) songMap[song1] = [];
-        songMap[song1].push(song1Cell);
-      }
-
-      if (song2) {
-        if (!songMap[song2]) songMap[song2] = [];
-        songMap[song2].push(song2Cell);
+      const songCell = tr.children[0];
+      const song = songCell?.textContent.trim().toLowerCase();
+      if (song) {
+        if (!songMap[song]) songMap[song] = [];
+        songMap[song].push(songCell);
       }
     });
 
