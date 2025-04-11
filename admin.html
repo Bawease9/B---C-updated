@@ -140,16 +140,12 @@
 
   function formatTimestamp(raw) {
     try {
-      const match = raw.match(/Date\((.*?)\)/);
+      const match = raw.match(/Date\\((.*?)\\)/);
       if (!match) return raw;
-
       const parts = match[1].split(',').map(Number);
-      const date = new Date(parts[0], parts[1], parts[2], parts[3], parts[4], parts[5]);
-
-      const options = { hour: 'numeric', minute: 'numeric', hour12: true };
-      const time = date.toLocaleTimeString(undefined, options).toLowerCase();
+      const date = new Date(...parts);
+      const time = date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
       const dateStr = `${date.getMonth() + 1}/${date.getDate()}`;
-
       return `${time} ${dateStr}`;
     } catch (e) {
       return raw;
@@ -157,55 +153,57 @@
   }
 
   function stripHighlightClasses(row) {
-    const songCells = row.querySelectorAll("td.song-title");
-    songCells.forEach(cell => {
+    row.querySelectorAll("td.song-title").forEach(cell => {
       cell.className = "song-title";
     });
   }
 
-  function createTableRow(cells, timestampRaw) {
-    const tr = document.createElement("tr");
-    const timestamp = formatTimestamp(timestampRaw);
-    const key = timestampRaw;
+  function createTableRow(cells) {
+    const song = cells[0]?.v || "";
+    const name = cells[1]?.v || "";
+    const dedication = cells[2]?.v || "";
+    const timestampRaw = cells[3]?.f || cells[3]?.v || "";
+    const tip = cells[4]?.v || "";
 
+    const key = timestampRaw;
     if (knownTimestamps.has(key)) return null;
     knownTimestamps.add(key);
 
-    const [_, song, name, dedication, tipAmount] = cells.map(cell => (cell ? cell.v : ""));
-    const tdData = [song, name, dedication, timestamp, tipAmount || ""];
+    const row = document.createElement("tr");
+    const data = [song, name, dedication, formatTimestamp(timestampRaw), tip];
 
-    tdData.forEach((val, idx) => {
+    data.forEach((val, idx) => {
       const td = document.createElement("td");
       td.textContent = val;
       if (idx === 0) td.classList.add("song-title");
-      tr.appendChild(td);
+      row.appendChild(td);
     });
 
-    const actionTd = document.createElement("td");
+    const actionCell = document.createElement("td");
 
     const playedBtn = document.createElement("button");
     playedBtn.textContent = "Mark as Played";
     playedBtn.onclick = () => {
-      tr.remove();
-      stripHighlightClasses(tr);
-      addUndoRow(tr, playedTable);
+      row.remove();
+      stripHighlightClasses(row);
+      addUndoRow(row, playedTable);
       highlightDuplicates();
     };
 
     const unknownBtn = document.createElement("button");
     unknownBtn.textContent = "Don't Know";
     unknownBtn.onclick = () => {
-      tr.remove();
-      stripHighlightClasses(tr);
-      addUndoRow(tr, unknownTable);
+      row.remove();
+      stripHighlightClasses(row);
+      addUndoRow(row, unknownTable);
       highlightDuplicates();
     };
 
-    actionTd.appendChild(playedBtn);
-    actionTd.appendChild(unknownBtn);
-    tr.appendChild(actionTd);
+    actionCell.appendChild(playedBtn);
+    actionCell.appendChild(unknownBtn);
+    row.appendChild(actionCell);
 
-    return tr;
+    return row;
   }
 
   function addUndoRow(row, targetTable) {
@@ -244,34 +242,21 @@
   }
 
   function highlightDuplicates() {
-    const allSongCells = requestsTable.querySelectorAll("td.song-title");
-    allSongCells.forEach(td => {
-      td.className = "song-title";
-    });
-
     const songMap = {};
-    const rows = Array.from(requestsTable.querySelectorAll("tr"));
-
-    rows.forEach(tr => {
-      const songCell = tr.children[0];
-      const song = songCell?.textContent.trim().toLowerCase();
-      if (song) {
-        if (!songMap[song]) songMap[song] = [];
-        songMap[song].push(songCell);
-      }
+    document.querySelectorAll("#requestsTable td.song-title").forEach(cell => {
+      const song = cell.textContent.trim().toLowerCase();
+      if (!songMap[song]) songMap[song] = [];
+      songMap[song].push(cell);
     });
 
     let colorIndex = 0;
     const colorMap = {};
-
-    Object.entries(songMap).forEach(([song, cellList]) => {
-      if (cellList.length > 1) {
+    Object.entries(songMap).forEach(([song, cells]) => {
+      if (cells.length > 1) {
         if (!colorMap[song]) {
           colorMap[song] = `highlight-${colorIndex++ % 10}`;
         }
-        cellList.forEach(cell => {
-          cell.classList.add(colorMap[song]);
-        });
+        cells.forEach(cell => cell.classList.add(colorMap[song]));
       }
     });
   }
@@ -284,11 +269,8 @@
         const rows = json.table.rows;
 
         rows.forEach(row => {
-          const timestampRaw = row.c[0]?.v;
-          const tr = createTableRow(row.c, timestampRaw);
-          if (tr) {
-            requestsTable.insertBefore(tr, requestsTable.firstChild);
-          }
+          const tr = createTableRow(row.c);
+          if (tr) requestsTable.insertBefore(tr, requestsTable.firstChild);
         });
 
         totalCount.textContent = `Total Requests: ${requestsTable.children.length}`;
@@ -311,9 +293,8 @@
   }
 
   fetchData();
-  setInterval(fetchData, 10000); // refresh every 10 seconds
+  setInterval(fetchData, 10000);
 </script>
-
 </body>
 </html>
 
