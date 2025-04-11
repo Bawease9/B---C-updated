@@ -90,7 +90,8 @@
     const name = formData.get('name');
     const tip = formData.get('tip') || 0;
 
-    const response = await fetch('https://square-frost-7b47.bradyandcaroline.workers.dev', {
+    const response = await fetch('https://square-frost-7b47.bradyandcaroline.workers.dev/create-checkout', {
+      , {
 , {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
