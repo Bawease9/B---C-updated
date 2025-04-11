@@ -84,7 +84,7 @@
         const dedication = document.getElementById("dedication").value.trim();
 
         try {
-          const res = await fetch('https://requests.bradyandcaroline.workers.dev/', {
+          const res = await fetch('https://brady-caroline-worker.bradyandcaroline.workers.dev', {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
