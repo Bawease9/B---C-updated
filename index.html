@@ -113,11 +113,13 @@
       }
     } else {
       // Send directly to Google Sheets
-      await fetch('https://script.google.com/macros/s/AKfycbwWd6jK4p7V23kJuTwluRhc1VFnpCrp0SZFnbQpmTxV-HxcPYNWaU3piEn0Ko5D3ODg/exec', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(requestPayload)
-      });
+   await fetch('https://script.google.com/macros/s/AKfycbwWd6jK4p7V23kJuTwluRhc1VFnpCrp0SZFnbQpmTxV-HxcPYNWaU3piEn0Ko5D3ODg/exec', {
+  method: 'POST',
+  mode: 'cors', // 👈 this helps ensure proper CORS handling
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify(requestPayload)
+});
+
 
       // Redirect to thank you page
       window.location.href = '/thankyou.html';
