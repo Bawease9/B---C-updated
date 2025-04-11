@@ -67,7 +67,7 @@
       <input type="text" id="song" name="song" placeholder="Song / Artist" required>
       <input type="text" id="name" name="name" placeholder="Your Name">
       <input type="text" id="dedication" name="dedication" placeholder="Dedication / Special Occasion">
-      <input type="text" id="tip" name="tip" placeholder="Tip Amount (e.g. $3.50)">
+      <input type="text" id="tip" name="tip" placeholder="Tip Amount (e.g. $5.00)">
       <button type="submit" class="button">Submit Request</button>
     </form>
 
@@ -82,49 +82,50 @@
   </div>
 
   <script>
+    const form = document.getElementById("request-form");
+    const spinner = document.getElementById("spinner");
     const tipInput = document.getElementById("tip");
 
-    tipInput.addEventListener("input", () => {
-      let value = tipInput.value.replace(/[^0-9.]/g, ""); // Remove non-numeric
-      let numericValue = parseFloat(value);
-      if (!isNaN(numericValue)) {
-        tipInput.value = `$${numericValue.toFixed(2)}`;
+    // Format tip field to dollar format
+    tipInput.addEventListener("input", (e) => {
+      let val = e.target.value.replace(/[^0-9.]/g, ""); // Remove non-numeric
+      const num = parseFloat(val);
+      if (!isNaN(num)) {
+        e.target.value = "$" + num.toFixed(2);
       } else {
-        tipInput.value = "";
+        e.target.value = "";
       }
     });
 
-    document.getElementById("request-form").addEventListener("submit", async function (e) {
+    form.addEventListener("submit", async function (e) {
       e.preventDefault();
-
-      document.getElementById("spinner").style.display = "block";
+      spinner.style.display = "block";
 
       const song = document.getElementById("song").value.trim();
       const name = document.getElementById("name").value.trim();
       const dedication = document.getElementById("dedication").value.trim();
-      const tipRaw = document.getElementById("tip").value.trim();
-      const tip = tipRaw.replace(/[^0-9.]/g, "");
+      let tip = tipInput.value.replace(/[^0-9.]/g, "").trim();
       const tipAmount = parseFloat(tip);
 
       if (!tip || isNaN(tipAmount) || tipAmount <= 0) {
         // No tip — send directly to Google Sheets
         try {
+          const formData = new FormData();
+          formData.append("song", song);
+          formData.append("name", name);
+          formData.append("dedication", dedication);
+          formData.append("tip", "0");
+
           await fetch("https://script.google.com/macros/s/AKfycbwWd6jK4p7V23kJuTwluRhc1VFnpCrp0SZFnbQpmTxV-HxcPYNWaU3piEn0Ko5D3ODg/exec", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              song,
-              name,
-              dedication,
-              tip: 0,
-            }),
+            body: formData,
           });
 
           window.location.href = "/thankyou.html";
         } catch (err) {
           console.error("Error submitting request:", err);
           alert("There was an error submitting your request. Please try again.");
-          document.getElementById("spinner").style.display = "none";
+          spinner.style.display = "none";
         }
       } else {
         // Tip exists — send to Stripe Checkout
@@ -149,13 +150,14 @@
         } catch (err) {
           console.error("Error submitting tip request:", err);
           alert("There was an error with the tip submission. Please try again.");
-          document.getElementById("spinner").style.display = "none";
+          spinner.style.display = "none";
         }
       }
     });
   </script>
 </body>
 </html>
+
 
 
 
