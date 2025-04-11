@@ -76,69 +76,68 @@
     </div>
 
     <script>
-      const tipInput = document.getElementById("tip");
-      let lastTipDigits = "";
+  const tipInput = document.getElementById("tip");
+  let lastTipDigits = "";
 
-      tipInput.addEventListener("input", (e) => {
-        const raw = e.target.value.replace(/\D/g, "");
-        lastTipDigits = raw;
-        const cents = parseInt(lastTipDigits || "0", 10);
-        tipInput.value = (cents / 100).toLocaleString("en-US", {
-          style: "currency",
-          currency: "USD",
-        });
+  tipInput.addEventListener("input", (e) => {
+    const raw = e.target.value.replace(/\D/g, "");
+    lastTipDigits = raw;
+    const cents = parseInt(lastTipDigits || "0", 10);
+    tipInput.value = (cents / 100).toLocaleString("en-US", {
+      style: "currency",
+      currency: "USD",
+    });
+  });
+
+  tipInput.addEventListener("keydown", (e) => {
+    if (e.key === "Backspace") {
+      e.preventDefault();
+      lastTipDigits = lastTipDigits.slice(0, -1);
+      const cents = parseInt(lastTipDigits || "0", 10);
+      tipInput.value = (cents / 100).toLocaleString("en-US", {
+        style: "currency",
+        currency: "USD",
       });
+    }
+  });
 
-      tipInput.addEventListener("keydown", (e) => {
-        if (e.key === "Backspace") {
-          e.preventDefault();
-          lastTipDigits = lastTipDigits.slice(0, -1);
-          const cents = parseInt(lastTipDigits || "0", 10);
-          tipInput.value = (cents / 100).toLocaleString("en-US", {
-            style: "currency",
-            currency: "USD",
-          });
-        }
-      });
+  document.getElementById("request-form").addEventListener("submit", async function (e) {
+    e.preventDefault();
 
-      document.getElementById("request-form").addEventListener("submit", async function (e) {
-        e.preventDefault();
+    document.getElementById("spinner").style.display = "block";
 
-        document.getElementById("spinner").style.display = "block";
+    const song = document.getElementById("song").value.trim();
+    const name = document.getElementById("name").value.trim();
+    const dedication = document.getElementById("dedication").value.trim();
+    const tipFormatted = document.getElementById("tip").value;
+    const tipAmount = parseFloat(tipFormatted.replace(/[^0-9.]/g, "") || "0");
 
-        const song = document.getElementById("song").value.trim();
-        const name = document.getElementById("name").value.trim();
-        const dedication = document.getElementById("dedication").value.trim();
-        const tipFormatted = document.getElementById("tip").value;
-        const tipAmount = parseFloat(tipFormatted.replace(/[^0-9.]/g, "")) || 0;
-
-        const requestData = {
+    try {
+      const res = await fetch("https://square-frost-7b47.bradyandcaroline.workers.dev/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
           song,
           name,
           dedication,
-          tip: tipAmount.toFixed(2),
-        };
-
-        try {
-          const response = await fetch("https://square-frost-7b47.bradyandcaroline.workers.dev/submit-request", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(requestData),
-          });
-
-          if (response.ok) {
-            window.location.href = "thankyou.html";
-          } else {
-            throw new Error("Request failed");
-          }
-        } catch (err) {
-          console.error("Error submitting request:", err);
-          alert("There was an error submitting your request. Please try again.");
-        } finally {
-          document.getElementById("spinner").style.display = "none";
-        }
+          tip: tipAmount,
+        }),
       });
-    </script>
+
+      const data = await res.json();
+      if (res.ok && data.success) {
+        window.location.href = "/thankyou.html";
+      } else {
+        throw new Error(data.message || "Unknown error");
+      }
+    } catch (err) {
+      console.error("Error submitting request:", err);
+      alert("There was an error submitting your request. Please try again.");
+      document.getElementById("spinner").style.display = "none";
+    }
+  });
+</script>
+
   </div>
 </body>
 </html>
