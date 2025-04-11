@@ -32,7 +32,9 @@
       border-radius: 8px;
       border: 1px solid #ccc;
     }
-    .button, .venmo-button {
+    .button {
+      background: #111;
+      color: white;
       width: auto;
       padding: 14px 28px;
       margin-top: 15px;
@@ -42,18 +44,6 @@
       cursor: pointer;
       display: inline-block;
     }
-    .button {
-      background: #111;
-      color: white;
-    }
-    .venmo-button {
-      background-color: #3D95CE;
-      color: white;
-      text-decoration: none;
-    }
-    .venmo-button:hover {
-      background-color: #2f80b5;
-    }
     h1 {
       font-size: 2em;
       margin: 20px 0;
@@ -62,6 +52,10 @@
       font-size: 1.3em;
       margin: 0 8px;
     }
+    #spinner {
+      display: none;
+      margin-top: 20px;
+    }
   </style>
 </head>
 <body>
@@ -69,17 +63,15 @@
     <img src="logo.png" alt="Brady and Caroline Logo" />
     <h1><span class="emoji">🎶</span> Make A Request <span class="emoji">🎶</span></h1>
 
-    <div id="form-container">
-      <form id="request-form">
-        <input type="text" id="song" name="song" placeholder="Song / Artist" required>
-        <input type="text" id="name" name="name" placeholder="Your Name">
-        <input type="text" id="dedication" name="dedication" placeholder="Dedication / Special Occasion">
-        <input type="number" id="tip" name="tip" placeholder="Tip Amount (USD)" min="0" step="0.01">
-        <button type="submit" class="button">Submit Request</button>
-      </form>
-    </div>
+    <form id="request-form">
+      <input type="text" id="song" name="song" placeholder="Song / Artist" required>
+      <input type="text" id="name" name="name" placeholder="Your Name">
+      <input type="text" id="dedication" name="dedication" placeholder="Dedication / Special Occasion">
+      <input type="text" id="tip" name="tip" placeholder="Tip Amount (e.g. $3.50)">
+      <button type="submit" class="button">Submit Request</button>
+    </form>
 
-    <div id="spinner" style="display:none; margin-top: 20px;">
+    <div id="spinner">
       <svg width="50" height="50" viewBox="0 0 50 50">
         <circle cx="25" cy="25" r="20" fill="none" stroke="#111" stroke-width="4" stroke-linecap="round" stroke-dasharray="100" stroke-dashoffset="100">
           <animate attributeName="stroke-dashoffset" values="100;0" dur="1s" repeatCount="indefinite" />
@@ -90,18 +82,29 @@
   </div>
 
   <script>
+    const tipInput = document.getElementById("tip");
+
+    tipInput.addEventListener("input", () => {
+      let value = tipInput.value.replace(/[^0-9.]/g, ""); // Remove non-numeric
+      let numericValue = parseFloat(value);
+      if (!isNaN(numericValue)) {
+        tipInput.value = `$${numericValue.toFixed(2)}`;
+      } else {
+        tipInput.value = "";
+      }
+    });
+
     document.getElementById("request-form").addEventListener("submit", async function (e) {
       e.preventDefault();
+
+      document.getElementById("spinner").style.display = "block";
 
       const song = document.getElementById("song").value.trim();
       const name = document.getElementById("name").value.trim();
       const dedication = document.getElementById("dedication").value.trim();
-      const tip = document.getElementById("tip").value.trim();
+      const tipRaw = document.getElementById("tip").value.trim();
+      const tip = tipRaw.replace(/[^0-9.]/g, "");
       const tipAmount = parseFloat(tip);
-
-      // Show spinner, hide form
-      document.getElementById("form-container").style.display = "none";
-      document.getElementById("spinner").style.display = "block";
 
       if (!tip || isNaN(tipAmount) || tipAmount <= 0) {
         // No tip — send directly to Google Sheets
@@ -121,7 +124,6 @@
         } catch (err) {
           console.error("Error submitting request:", err);
           alert("There was an error submitting your request. Please try again.");
-          document.getElementById("form-container").style.display = "block";
           document.getElementById("spinner").style.display = "none";
         }
       } else {
@@ -147,7 +149,6 @@
         } catch (err) {
           console.error("Error submitting tip request:", err);
           alert("There was an error with the tip submission. Please try again.");
-          document.getElementById("form-container").style.display = "block";
           document.getElementById("spinner").style.display = "none";
         }
       }
@@ -155,5 +156,6 @@
   </script>
 </body>
 </html>
+
 
 
